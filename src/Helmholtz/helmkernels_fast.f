@@ -75,7 +75,7 @@ cf2py intent(out) pot
 c
 cc      calling sequence variables
 c  
-      integer ns,nt,nd
+      integer(8) ns,nt,nd
       complex *16 zk
       real *8 sources(3,ns),ztarg(3,nt)
       complex *16 charge(nd,ns),pot(nd,nt)
@@ -141,7 +141,7 @@ cf2py intent(out) pot,grad
 c
 cc      calling sequence variables
 c  
-      integer ns,nt,nd
+      integer(8) ns,nt,nd
       complex *16 zk
       real *8 sources(3,ns),ztarg(3,nt)
       complex *16 charge(nd,ns),pot(nd,nt),grad(nd,3,nt)
@@ -211,7 +211,7 @@ cf2py intent(out) pot
 c
 cc      calling sequence variables
 c  
-      integer ns,nt,nd
+      integer(8) ns,nt,nd
       complex *16 zk
       real *8 sources(3,ns),ztarg(3,nt)
       complex *16 dipvec(nd,3,ns)
@@ -288,7 +288,7 @@ cf2py intent(out) pot,grad
 c
 cc      calling sequence variables
 c  
-      integer ns,nt,nd
+      integer(8) ns,nt,nd
       complex *16 zk
       real *8 sources(3,ns),ztarg(3,nt)
       complex *16 dipvec(nd,3,ns)
@@ -357,7 +357,7 @@ c
 c
 cc      calling sequence variables
 c  
-      integer ns,nt,nd
+      integer(8) ns,nt,nd
       complex *16 zk
       real *8 sources(3,ns),ztarg(3,nt)
       complex *16 dipvec(nd,3,ns)
@@ -435,7 +435,7 @@ cf2py intent(out) pot,grad
 c
 cc      calling sequence variables
 c  
-      integer ns,nt,nd
+      integer(8) ns,nt,nd
       complex *16 zk
       real *8 sources(3,ns),ztarg(3,nt)
       complex *16 dipvec(nd,3,ns)

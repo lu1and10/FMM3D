@@ -29,7 +29,7 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   !-----------------------------------------------------------------------
   !   INPUT PARAMETERS:
   !
-  !   nd:    in: integer
+  !   nd:    in: integer(8)
   !             number of densities
   !   
   !   eps:   in: double precision
@@ -38,7 +38,7 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   !   zk:    in: double complex
   !               helmholtz parameter                
   !
-  !   nsource in: integer  
+  !   nsource in: integer(8)  
   !                number of sources
   !
   !   source  in: double precision (3,nsource)
@@ -46,7 +46,7 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   !                source locations
   !
   !
-  !     nmpole:  in: integer
+  !     nmpole:  in: integer(8)
   !              number of multipole expansion centers
   !
   !     cmpole:  in: double precision (3,nmpole)
@@ -55,19 +55,19 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   !     rmpole:  in: double precision (nmpole)
   !              scaling factors for each multipole expansion
   !
-  !     mterms:  in: integer (nmpole)
+  !     mterms:  in: integer(8) (nmpole)
   !              order of the multipole expansions, each expansion
   !              can be of a different order
   !
   !     mpole:   in: double complex (nd,*)
   !              coefficients in the multipole expansions
   !
-  !     impole:  in: integer (nmpole)
+  !     impole:  in: integer(8) (nmpole)
   !              indexing array for mpole, the ith expansion is at
   !              location mpole(1,impole(i)) and is of order mterms(i)
   !
   !
-  !   ntarg  in: integer  
+  !   ntarg  in: integer(8)  
   !                 number of targs 
   !
   !   targ  in: double precision (3,ntarg)
@@ -104,20 +104,20 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   
   implicit none
 
-  integer nd
+  integer(8) nd
 
   double complex zk
   double precision eps
 
-  integer :: nmpole, mterms(nmpole), impole(nmpole)
+  integer(8) :: nmpole, mterms(nmpole), impole(nmpole)
   double precision :: cmpole(3,nmpole), rmpole(nmpole)
   double complex :: mpole(*)
   double complex :: local(*)
   
-  !integer ifcharge,ifdipole
-  !integer ifpgh,ifpghtarg
+  !integer(8) ifcharge,ifdipole
+  !integer(8) ifpgh,ifpghtarg
 
-  !integer nsource
+  !integer(8) nsource
 
   !double precision source(3,nsource)
   !double complex charge(nd,nsource)
@@ -129,26 +129,26 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   !    gradtarg(nd,3,ntarg),hess(nd,6,*),hesstarg(nd,6,*)
 
   ! Tree variables
-  integer mhung,idivflag,ndiv,isep,nboxes,nbmax,nlevels
-  integer *8 ltree
-  integer nlmax
-  integer ntarg  
-  integer mnbors,mnlist1,mnlist2,mnlist3,mnlist4
-  integer *8 ipointer(32)
-  integer, allocatable :: itree(:)
+  integer(8) mhung,idivflag,ndiv,isep,nboxes,nbmax,nlevels
+  integer(8) ltree
+  integer(8) nlmax
+  integer(8) ntarg  
+  integer(8) mnbors,mnlist1,mnlist2,mnlist3,mnlist4
+  integer(8) ipointer(32)
+  integer(8), allocatable :: itree(:)
   double precision :: targ(3)
   double precision, allocatable :: treecenters(:,:),boxsize(:)
 
   !
   ! temporary sorted arrays
   !
-  integer :: lmpole, mt, len
+  integer(8) :: lmpole, mt, len
   !double precision, allocatable :: sourcesort(:,:),targsort(:,:)
   double precision, allocatable :: radsrc(:)
   !double complex, allocatable :: chargesort(:,:)
   !double complex, allocatable :: dipvecsort(:,:,:)
 
-  integer, allocatable :: mtermssort(:), impolesort(:)
+  integer(8), allocatable :: mtermssort(:), impolesort(:)
   double precision, allocatable :: cmpolesort(:,:)
   double precision, allocatable :: rmpolesort(:)
   double complex, allocatable :: mpolesort(:)
@@ -163,13 +163,13 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   !  temporary fmm arrays
   !
   double precision epsfmm
-  integer, allocatable :: nterms(:)
-  integer *8, allocatable :: iaddr(:,:)
+  integer(8), allocatable :: nterms(:)
+  integer(8), allocatable :: iaddr(:,:)
   double precision, allocatable :: scales(:)
   double precision, allocatable :: rmlexp(:)
 
-  integer lmptemp,nmax
-  integer *8 lmptot
+  integer(8) lmptemp,nmax
+  integer(8) lmptot
   double precision, allocatable :: mptemp(:),mptemp2(:)
 
   !
@@ -178,13 +178,13 @@ subroutine hfmm3d_mps(nd, eps, zk, nmpole, cmpole, rmpole, mterms, &
   double precision expc(3),scjsort(1),radexp
   double complex texpssort(100)
   double precision expcsort(3),radssort(1)
-  integer ntj,nexpc,nadd, npts, perm, ptr, ifunsort
+  integer(8) ntj,nexpc,nadd, npts, perm, ptr, ifunsort
 
   !
   !        other temporary variables
   !
-  integer :: i, j, l, ijk, iert,ifprint,ilev,idim,ier
-  integer :: nlege, lw7, lused7
+  integer(8) :: i, j, l, ijk, iert,ifprint,ilev,idim,ier
+  integer(8) :: nlege, lw7, lused7
   double precision :: wlege(40000)
   double precision time1,time2,omp_get_wtime,second
 
@@ -551,32 +551,32 @@ subroutine hfmm3dmain_mps(nd, eps, zk, &
   !
   ! INPUT variables
   !
-  integer :: nd, ndiv,nlevels
+  integer(8) :: nd, ndiv,nlevels
   double precision :: eps
   double complex :: zk,zk2
 
   ! input multipole stuff
-  integer :: nmpole, mtermssort(nmpole)
+  integer(8) :: nmpole, mtermssort(nmpole)
   double precision :: cmpolesort(3,nmpole), rmpolesort(nmpole)
   double complex :: mpolesort(*)
-  integer :: impolesort(nmpole)
+  integer(8) :: impolesort(nmpole)
 
   ! storage stuff for tree and multipole expansions
-  integer :: lmptemp
-  integer *8 :: iaddr(2,nboxes), lmptot
+  integer(8) :: lmptemp
+  integer(8) :: iaddr(2,nboxes), lmptot
   double precision :: rmlexp(lmptot)
   double precision :: mptemp(lmptemp)
   double precision :: mptemp2(lmptemp)
 
   ! tree variables
-  integer :: isep
-  integer *8 :: ltree
-  integer :: laddr(2,0:nlevels)
-  integer :: nterms(0:nlevels)
-  integer *8 :: ipointer(32)
-  integer :: itree(ltree)
-  integer :: nboxes
-  integer :: mnbors,mnlist1, mnlist2,mnlist3,mnlist4
+  integer(8) :: isep
+  integer(8) :: ltree
+  integer(8) :: laddr(2,0:nlevels)
+  integer(8) :: nterms(0:nlevels)
+  integer(8) :: ipointer(32)
+  integer(8) :: itree(ltree)
+  integer(8) :: nboxes
+  integer(8) :: mnbors,mnlist1, mnlist2,mnlist3,mnlist4
   double precision :: rscales(0:nlevels)
   double precision :: boxsize(0:nlevels)
   double precision :: centers(3,nboxes)
@@ -592,19 +592,19 @@ subroutine hfmm3dmain_mps(nd, eps, zk, &
   !
 
   ! pw stuff
-  integer nuall,ndall,nnall,nsall,neall,nwall
-  integer nu1234,nd5678,nn1256,ns3478,ne1357,nw2468
-  integer nn12,nn56,ns34,ns78,ne13,ne57,nw24,nw68
-  integer ne1,ne3,ne5,ne7,nw2,nw4,nw6,nw8
-  integer uall(200),dall(200),nall(120),sall(120),eall(72),wall(72)
-  integer u1234(36),d5678(36),n1256(24),s3478(24)
-  integer e1357(16),w2468(16),n12(20),n56(20),s34(20),s78(20)
-  integer e13(20),e57(20),w24(20),w68(20)
-  integer e1(20),e3(5),e5(5),e7(5),w2(5),w4(5),w6(5),w8(5)
-  integer ntmax, nexpmax, nlams, nmax, nthmax, nphmax
-  integer nn,nnn
-  integer nexptot, nexptotp
-  integer, allocatable :: nfourier(:), nphysical(:)
+  integer(8) nuall,ndall,nnall,nsall,neall,nwall
+  integer(8) nu1234,nd5678,nn1256,ns3478,ne1357,nw2468
+  integer(8) nn12,nn56,ns34,ns78,ne13,ne57,nw24,nw68
+  integer(8) ne1,ne3,ne5,ne7,nw2,nw4,nw6,nw8
+  integer(8) uall(200),dall(200),nall(120),sall(120),eall(72),wall(72)
+  integer(8) u1234(36),d5678(36),n1256(24),s3478(24)
+  integer(8) e1357(16),w2468(16),n12(20),n56(20),s34(20),s78(20)
+  integer(8) e13(20),e57(20),w24(20),w68(20)
+  integer(8) e1(20),e3(5),e5(5),e7(5),w2(5),w4(5),w6(5),w8(5)
+  integer(8) ntmax, nexpmax, nlams, nmax, nthmax, nphmax
+  integer(8) nn,nnn
+  integer(8) nexptot, nexptotp
+  integer(8), allocatable :: nfourier(:), nphysical(:)
 
   double precision :: r1
   double precision, allocatable :: carray(:,:), dc(:,:)
@@ -627,28 +627,28 @@ subroutine hfmm3dmain_mps(nd, eps, zk, &
   double complex, allocatable :: mexppall(:,:,:)
 
   ! temp variables
-  integer i,j,k,l,ii,jj,kk,ll,idim
-  integer ibox,jbox,ilev,npts,npts0
-  integer nchild,nlist1,nlist2,nlist3,nlist4
-  integer istart,iend,istartt,iendt,istarte,iende
-  integer istarts,iends, iloc
-  integer jstart,jend
-  integer ifprint,ifwrite
-  integer ifpgh
-  integer ix,iy,iz
-  integer nlege, lw7, lused7, itype
-  integer ctr,ifinit2
-  integer nquad2
-  integer maX_nodes
-  integer iert, ifpw, ifmp
-  integer istart0,istart1,istartm1,nprin
-  integer nlfbox,ier, ifstep2, mt, ltot
+  integer(8) i,j,k,l,ii,jj,kk,ll,idim
+  integer(8) ibox,jbox,ilev,npts,npts0
+  integer(8) nchild,nlist1,nlist2,nlist3,nlist4
+  integer(8) istart,iend,istartt,iendt,istarte,iende
+  integer(8) istarts,iends, iloc
+  integer(8) jstart,jend
+  integer(8) ifprint,ifwrite
+  integer(8) ifpgh
+  integer(8) ix,iy,iz
+  integer(8) nlege, lw7, lused7, itype
+  integer(8) ctr,ifinit2
+  integer(8) nquad2
+  integer(8) maX_nodes
+  integer(8) iert, ifpw, ifmp
+  integer(8) istart0,istart1,istartm1,nprin
+  integer(8) nlfbox,ier, ifstep2, mt, ltot
 
 
-  integer cntlist4,list4,ilist4
-  integer, allocatable :: nlist4s(:)
+  integer(8) cntlist4,list4,ilist4
+  integer(8), allocatable :: nlist4s(:)
   double complex pgboxwexp(100)
-  integer *8 :: bigint
+  integer(8) :: bigint
   double precision d,time1,time2,omp_get_wtime
   double precision timeinfo(10)
   double precision rtmp

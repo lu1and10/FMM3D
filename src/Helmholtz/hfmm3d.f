@@ -15,7 +15,7 @@ c-----------------------------------------------------------
 c-----------------------------------------------------------------------
 c   INPUT PARAMETERS:
 c
-c   nd:    in: integer
+c   nd:    in: integer(8)
 c             number of densities
 c   
 c   eps:   in: double precision
@@ -24,14 +24,14 @@ c
 c   zk:    in: double complex
 c               helmholtz parameter                
 c
-c   nsource in: integer  
+c   nsource in: integer(8)  
 c                number of sources
 c
 c   source  in: double precision (3,nsource)
 c                source(k,j) is the kth component of the jth
 c                source locations
 c
-c   ifcharge  in: integer  
+c   ifcharge  in: integer(8)  
 c             charge computation flag
 c              ifcharge = 1   =>  include charge contribution
 c                                     otherwise do not
@@ -39,7 +39,7 @@ c
 c   charge    in: double complex (nd,nsource) 
 c              charge strengths
 c
-c   ifdipole   in: integer
+c   ifdipole   in: integer(8)
 c              dipole computation flag
 c              ifdipole = 1   =>  include dipole contribution
 c                                     otherwise do not
@@ -47,20 +47,20 @@ c
 c   dipvec   in: double precision (nd,3,nsource) 
 c              dipole orientation vectors
 c
-c   ifpgh   in: integer
+c   ifpgh   in: integer(8)
 c              flag for evaluating potential/gradient at the sources
 c              ifpgh = 1, only potential is evaluated
 c              ifpgh = 2, potential and gradients are evaluated
 c
 c
-c   ntarg  in: integer  
+c   ntarg  in: integer(8)  
 c                 number of targs 
 c
 c   targ  in: double precision (3,ntarg)
 c               targ(k,j) is the kth component of the jth
 c               targ location
 c
-c   ifpghtarg   in: integer
+c   ifpghtarg   in: integer(8)
 c              flag for evaluating potential/gradient at the targs
 c              ifpghtarg = 1, only potential is evaluated
 c              ifpghtarg = 2, potential and gradient are evaluated
@@ -90,15 +90,15 @@ c------------------------------------------------------------------
 
       implicit none
 
-      integer nd
+      integer(8) nd,ndim
 
       double complex zk
       double precision eps
 
-      integer ifcharge,ifdipole
-      integer ifpgh,ifpghtarg
+      integer(8) ifcharge,ifdipole
+      integer(8) ifpgh,ifpghtarg
 
-      integer nsource,ntarg
+      integer(8) nsource,ntarg
 
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nd,nsource)
@@ -110,12 +110,12 @@ c------------------------------------------------------------------
      1     gradtarg(nd,3,ntarg),hess(nd,6,*),hesstarg(nd,6,*)
 
 c       Tree variables
-      integer mhung,idivflag,ndiv,isep,nboxes,nbmax,nlevels
-      integer *8 ltree
-      integer nlmax
-      integer mnbors,mnlist1,mnlist2,mnlist3,mnlist4
-      integer *8 ipointer(32)
-      integer, allocatable :: itree(:)
+      integer(8) mhung,idivflag,ndiv,isep,nboxes,nbmax,nlevels
+      integer(8) ltree
+      integer(8) nlmax
+      integer(8) mnbors,mnlist1,mnlist2,mnlist3,mnlist4
+      integer(8) ipointer(32)
+      integer(8), allocatable :: itree(:)
       double precision, allocatable :: treecenters(:,:),boxsize(:)
       double precision b0,b0inv,b0inv2,b0inv3
       double complex zkfmm
@@ -137,13 +137,13 @@ c
 cc       temporary fmm arrays
 c
       double precision epsfmm
-      integer, allocatable :: nterms(:)
-      integer *8, allocatable :: iaddr(:,:)
+      integer(8), allocatable :: nterms(:)
+      integer(8), allocatable :: iaddr(:,:)
       double precision, allocatable :: scales(:)
       double precision, allocatable :: rmlexp(:)
 
-      integer lmptemp,nmax
-      integer *8 lmptot
+      integer(8) lmptemp,nmax
+      integer(8) lmptot
       double precision, allocatable :: mptemp(:),mptemp2(:)
 
 c
@@ -152,12 +152,12 @@ c
       double precision expc(3),scjsort(1),radexp
       double complex texpssort(100)
       double precision expcsort(3),radssort(1)
-      integer ntj,nexpc,nadd,ifnear
+      integer(8) ntj,nexpc,nadd,ifnear
 
 c
 cc        other temporary variables
 c
-       integer i,iert,ifprint,ilev,idim,ier
+       integer(8) i,iert,ifprint,ilev,idim,ier
        double precision time1,time2,omp_get_wtime,second
 
        
@@ -167,7 +167,7 @@ c     ifprint is an internal information printing flag.
 c     Suppressed if ifprint=0.
 c     Prints timing breakdown and other things if ifprint=1.
 c      
-      ifprint=0
+      ifprint=1
 
 
 
@@ -540,13 +540,14 @@ c
      $     ntj,jsort,scjsort,ifnear)
       implicit none
 
-      integer nd
+      integer(8) nd
+      integer(8) nboxes
       double precision eps
-      integer nsource,ntarg, nexpc
-      integer ndiv,nlevels
+      integer(8) nsource,ntarg, nexpc
+      integer(8) ndiv,nlevels
 
-      integer ifcharge,ifdipole
-      integer ifpgh,ifpghtarg
+      integer(8) ifcharge,ifdipole
+      integer(8) ifpgh,ifpghtarg
 
       double complex zk,zk2
 
@@ -560,14 +561,14 @@ c
       double complex pot(nd,*),grad(nd,3,*),hess(nd,6,*)
       double complex pottarg(nd,*),gradtarg(nd,3,*),hesstarg(nd,6,*)
 
-      integer ntj
-      integer ifnear
+      integer(8) ntj
+      integer(8) ifnear
       double precision expcsort(3,nexpc)
       double complex jsort(nd,0:ntj,-ntj:ntj,nexpc)
 
 
-      integer lmptemp
-      integer *8 iaddr(2,nboxes), lmptot
+      integer(8) lmptemp
+      integer(8) iaddr(2,nboxes), lmptot
       double precision rmlexp(lmptot)
       double precision mptemp(lmptemp)
       double precision mptemp2(lmptemp)
@@ -577,30 +578,30 @@ c
 c
 cc      tree variables
 c
-      integer isep
-      integer *8 ltree
-      integer laddr(2,0:nlevels)
-      integer nterms(0:nlevels)
-      integer *8 ipointer(32)
-      integer itree(ltree)
-      integer nboxes
+      integer(8) isep
+      integer(8) ltree
+      integer(8) laddr(2,0:nlevels)
+      integer(8) nterms(0:nlevels)
+      integer(8) ipointer(32)
+      integer(8) itree(ltree)
       double precision rscales(0:nlevels)
       double precision boxsize(0:nlevels)
 c
 cc      pw stuff
 c
-      integer nuall,ndall,nnall,nsall,neall,nwall
-      integer nu1234,nd5678,nn1256,ns3478,ne1357,nw2468
-      integer nn12,nn56,ns34,ns78,ne13,ne57,nw24,nw68
-      integer ne1,ne3,ne5,ne7,nw2,nw4,nw6,nw8
+      integer(8) nuall,ndall,nnall,nsall,neall,nwall
+      integer(8) nu1234,nd5678,nn1256,ns3478,ne1357,nw2468
+      integer(8) nn12,nn56,ns34,ns78,ne13,ne57,nw24,nw68
+      integer(8) ne1,ne3,ne5,ne7,nw2,nw4,nw6,nw8
 
-      integer uall(200),dall(200),nall(120),sall(120),eall(72),wall(72)
-      integer u1234(36),d5678(36),n1256(24),s3478(24)
-      integer e1357(16),w2468(16),n12(20),n56(20),s34(20),s78(20)
-      integer e13(20),e57(20),w24(20),w68(20)
-      integer e1(20),e3(5),e5(5),e7(5),w2(5),w4(5),w6(5),w8(5)
+      integer(8) uall(200),dall(200),nall(120),sall(120)
+      integer(8) eall(72),wall(72)
+      integer(8) u1234(36),d5678(36),n1256(24),s3478(24)
+      integer(8) e1357(16),w2468(16),n12(20),n56(20),s34(20),s78(20)
+      integer(8) e13(20),e57(20),w24(20),w68(20)
+      integer(8) e1(20),e3(5),e5(5),e7(5),w2(5),w4(5),w6(5),w8(5)
 
-      integer ntmax, nexpmax, nlams, nmax, nthmax, nphmax
+      integer(8) ntmax, nexpmax, nlams, nmax, nthmax, nphmax
       double precision, allocatable :: carray(:,:), dc(:,:)
       double precision, allocatable :: rdplus(:,:,:)
       double precision, allocatable :: rdminus(:,:,:), rdsq3(:,:,:)
@@ -608,13 +609,13 @@ c
       double complex, allocatable :: rdminus2(:,:,:),zeyep(:)
       double complex, allocatable :: rdplus2(:,:,:)
       double precision, allocatable :: zmone(:)
-      integer nn,nnn
+      integer(8) nn,nnn
   
       double complex, allocatable :: rlams(:),whts(:)
 
       double complex, allocatable :: rlsc(:,:,:)
-      integer, allocatable :: nfourier(:), nphysical(:)
-      integer nexptot, nexptotp
+      integer(8), allocatable :: nfourier(:), nphysical(:)
+      integer(8) nexptot, nexptotp
       double complex, allocatable :: xshift(:,:),yshift(:,:),zshift(:,:)
 
       double complex, allocatable :: fexp(:),fexpback(:)
@@ -631,42 +632,42 @@ c
       double precision scjsort(nexpc),radssort(nexpc)
 
 c     temp variables
-      integer i,j,k,l,ii,jj,kk,ll,idim
-      integer ibox,jbox,ilev,npts,npts0
-      integer nchild,nlist1,nlist2,nlist3,nlist4
+      integer(8) i,j,k,l,ii,jj,kk,ll,idim
+      integer(8) ibox,jbox,ilev,npts,npts0
+      integer(8) nchild,nlist1,nlist2,nlist3,nlist4
 
-      integer istart,iend,istartt,iendt,istarte,iende
-      integer istarts,iends
-      integer jstart,jend
+      integer(8) istart,iend,istartt,iendt,istarte,iende
+      integer(8) istarts,iends
+      integer(8) jstart,jend
 
-      integer ifprint,ifwrite
+      integer(8) ifprint,ifwrite
 
-      integer ifhesstarg
+      integer(8) ifhesstarg
       double precision d,time1,time2,omp_get_wtime
 
       double precision sourcetmp(3)
       double complex chargetmp(nd)
 
-      integer ix,iy,iz
+      integer(8) ix,iy,iz
       double precision rtmp
       double complex zmul
 
-      integer nlege, lw7, lused7, itype
+      integer(8) nlege, lw7, lused7, itype
       double precision, allocatable :: wlege(:)
 
       double precision thresh
 
-      integer mnbors,mnlist1, mnlist2,mnlist3,mnlist4
+      integer(8) mnbors,mnlist1, mnlist2,mnlist3,mnlist4
       double complex eye, ztmp,zmult
       double precision alphaj
-      integer ctr,ifinit2
+      integer(8) ctr,ifinit2
       double precision, allocatable :: xnodes(:),wts(:)
       double precision radius
-      integer nquad2
-      integer maX_nodes
+      integer(8) nquad2
+      integer(8) maX_nodes
       double precision pi
       
-      integer istart0,istart1,istartm1,nprin
+      integer(8) istart0,istart1,istartm1,nprin
       double precision rtmp1,rtmp2,rtmp3,rtmp4
       double precision ctmp(3)
       double complex ima
@@ -677,25 +678,25 @@ c     list 3 variables
       double complex, allocatable :: iboxpot(:,:)
       double complex, allocatable :: iboxgrad(:,:,:)
       double precision, allocatable :: iboxsrc(:,:)
-      integer, allocatable :: iboxsrcind(:)
-      integer iboxfl(2,8)
+      integer(8), allocatable :: iboxsrcind(:)
+      integer(8) iboxfl(2,8)
 c     end of list 3 variables
 c     list 4 variables
-      integer cntlist4
-      integer, allocatable :: list4(:),ilist4(:)
+      integer(8) cntlist4
+      integer(8), allocatable :: list4(:),ilist4(:)
       double complex, allocatable :: pgboxwexp(:,:,:,:)
 
 
 c     end of list 4 variables
 
-      integer *8 bigint
+      integer(8) bigint
       double precision zkiupbound,zi,zkrupbound,rz
-      integer ilevcutoff
+      integer(8) ilevcutoff
 
-      integer iert
+      integer(8) iert
       data ima/(0.0d0,1.0d0)/
 
-      integer nlfbox,ier
+      integer(8) nlfbox,ier
 
 
       ntmax = 1000
@@ -708,7 +709,7 @@ c     Suppressed if ifprint=0.
 c     Prints timing breakdown and other things if ifprint=1.
 c     Prints timing breakdown, list information, and other things if ifprint=2.
 c       
-        ifprint=0
+        ifprint=1
 
 c
 c      If imaginary part is greater than 12*pi
@@ -2258,7 +2259,7 @@ c     expansions
 c
 c     INPUT arguments
 c------------------------------------------------------------------
-c     nd           in: integer
+c     nd           in: integer(8)
 c                  number of charge densities
 c 
 c     zk           in: double complex
@@ -2312,7 +2313,7 @@ c     wlege       in: double precision(0:nlege,0:nlege)
 c                 precomputed array of recurrence relation
 c                 coeffs for Ynm calculation.
 c
-c    nlege        in: integer
+c    nlege        in: integer(8)
 c                 dimension parameter for wlege
 c------------------------------------------------------------
 c     OUTPUT
@@ -2322,9 +2323,9 @@ c   texps : coeffs for local expansions
 c-------------------------------------------------------               
         implicit none
 c
-        integer istart,iend,jstart,jend,ns,j, nlege
-        integer nd
-        integer ifcharge,ifdipole,ier
+        integer(8) istart,iend,jstart,jend,ns,j, nlege
+        integer(8) nd
+        integer(8) ifcharge,ifdipole,ier
         double complex zk
         double precision source(3,*)
         double precision wlege(0:nlege,0:nlege)
@@ -2332,7 +2333,7 @@ c
         double complex dipvec(nd,3,*)
         double precision targ(3,*),scj(*)
 
-        integer nlevels,ntj
+        integer(8) nlevels,ntj
 c
         double complex texps(nd,0:ntj,-ntj:ntj,*)
         

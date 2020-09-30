@@ -145,7 +145,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -165,8 +165,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,1)
       double complex charge(nsource)
@@ -222,7 +222,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -244,8 +244,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,1)
       double complex charge(nsource)
@@ -300,7 +300,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -320,8 +320,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,1)
       double complex charge(1)
@@ -377,7 +377,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -399,8 +399,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,1)
       double complex charge(1)
@@ -456,7 +456,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -478,8 +478,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,1)
       double complex charge(nsource)
@@ -540,7 +540,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -564,8 +564,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,1)
       double complex charge(nsource)
@@ -620,13 +620,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -644,8 +644,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -700,13 +700,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -726,8 +726,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -780,13 +780,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -804,8 +804,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(1)
@@ -861,13 +861,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -887,8 +887,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(1)
@@ -943,7 +943,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -951,7 +951,7 @@ c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -969,8 +969,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -1027,7 +1027,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -1035,7 +1035,7 @@ c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1055,8 +1055,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -1109,13 +1109,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1135,8 +1135,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -1191,13 +1191,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1221,8 +1221,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -1277,13 +1277,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1303,8 +1303,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(1)
@@ -1361,13 +1361,13 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1391,8 +1391,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(1)
@@ -1447,7 +1447,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -1455,7 +1455,7 @@ c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1475,8 +1475,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
@@ -1533,7 +1533,7 @@ c    -    eps: double precision
 c          precision requested
 c    -    zk: double complex
 c          Helmholtz parameter (k)
-c    -    nsource: integer
+c    -    nsource: integer(8)
 c          Number of sources
 c    -    source: double precision(3,nsource)
 c          Source locations, $x_{j}$
@@ -1541,7 +1541,7 @@ c    -    charge: double complex(nsource)
 c          Charge strengths, $c_{j}$
 c    -    dipvec: double complex(3,nsource)
 c          Dipole strengths, $v_{j}$
-c    -    ntarg: integer
+c    -    ntarg: integer(8)
 c          Number of targets
 c    -    targ: double precision(3,ntarg)
 c          Target locations, $t_{i}$
@@ -1565,8 +1565,8 @@ c
       double precision eps
       double complex zk
 
-      integer nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
-      integer nd
+      integer(8) nsource,ntarg,ifcharge,ifdipole,ifpgh,ifpghtarg
+      integer(8) nd
       
       double precision source(3,nsource),targ(3,ntarg)
       double complex charge(nsource)
