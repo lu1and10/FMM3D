@@ -3366,6 +3366,7 @@ ccc   scoped function variables
       integer(8) jstart,jend,npts0
       integer(8) gboxfl(2,8)
       integer(8), allocatable :: gboxind(:)
+      integer(8) itmp
       double precision time1,time2,omp_get_wtime
       double precision gboxsubcenters(3,8)
       double precision, allocatable ::  gboxsort(:,:)
@@ -3385,7 +3386,7 @@ C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,istart,iend,jbox,jstart,jend,npts,npts0,i)
 C$OMP$PRIVATE(gboxind,gboxsort,gboxfl,gboxsubcenters)
 C$OMP$PRIVATE(gboxwexp,gboxmexp,gboxcgsort,gboxdpsort)
-C$OMP$PRIVATE(mexpf1,mexpf2,tmp,mptemp)
+C$OMP$PRIVATE(mexpf1,mexpf2,tmp,mptemp,itmp)
       do ibox=laddr(1,ilev),laddr(2,ilev)
         if(list4(ibox).gt.0) then
           istart=itree(ipointer(10)+ibox-1)
@@ -3399,7 +3400,8 @@ C$OMP$PRIVATE(mexpf1,mexpf2,tmp,mptemp)
             call subdividebox(sourcesort(1,istart),npts,
      1           centers(1,ibox),boxsize,
      2           gboxind,gboxfl,gboxsubcenters)
-            call dreorderf(3,npts,sourcesort(1,istart),
+            itmp = 3
+            call dreorderf(itmp,npts,sourcesort(1,istart),
      1           gboxsort,gboxind)
             if(ifcharge.eq.1) then
               allocate(gboxcgsort(nd,npts))
