@@ -1,15 +1,18 @@
 program test_hfmm3d_mp2loc
-  implicit double precision (a-h,o-z)
+  implicit none
   
   character(len=72) str1
   
   integer(8) :: ns, nt, nc, nlege, ns1
   integer(8) :: i,j,k,ntest,nd,idim
   integer(8) :: ifcharge,ifdipole,ifpgh,ifpghtarg
-  integer(8) :: ipass(18),len1,ntests,isum
+  integer(8) :: ipass(18),len1,ntests,isum,ier,iper,npts
   integer(8), allocatable :: nterms(:), impole(:)
   
   double precision :: eps, err, hkrand, dnorms(1000), force(10)
+  double precision :: boxsize, dlam, dnorm, done, h 
+  integer(8) ijk,ilen, isuccess, lused, lw, n1, ntarg, ntm, ntot
+  double precision :: pi, rscale, sc, shift, thresh
   double precision, allocatable :: source(:,:), targ(:,:)
   double precision, allocatable :: centers(:,:)
   double precision, allocatable :: wlege(:), rscales(:)
@@ -183,6 +186,8 @@ program test_hfmm3d_mp2loc
   ifpgh = 1
   ntarg = 0
   ifpghtarg = 0
+  iper = 0
+  ier = 0
   call hfmm3d(nd, eps, zk, ns, source, ifcharge, &
       charge, ifdipole, dipvec, iper, ifpgh, pot, grad, hess, ntarg, &
       targ, ifpghtarg, pottarg, gradtarg, hesstarg, ier)
