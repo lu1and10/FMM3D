@@ -1,6 +1,6 @@
 c
        subroutine lfmm3d(nd, eps ,nmpole, cmpole, rmpole, mterms,
-     $    mpole, impole, local, ier)
+     $                   mpole, impole, local, ier)
 c
        implicit none
 
@@ -59,7 +59,6 @@ cc     other temporary variables
 c
        integer i,iert,ifprint,ilev,idim
        double precision time1,time2,omp_get_wtime,second
-       double precision timeinfo(6)
 
 c
 c
@@ -106,9 +105,6 @@ cc     memory management code for contructing level restricted tree
        call pts_tree_mem(cmpole,nmpole,targ,ntarg,idivflag,ndiv,nlmin,
      1      nlmax,iper,ifunif,nlevels,nboxes,ltree)
       
-
-       if(ifprint.ge.1) print *, "ltree/1e9", ltree/1.0d9
-
        allocate(itree(ltree))
        allocate(boxsize(0:nlevels))
        allocate(treecenters(3,nboxes))
@@ -128,158 +124,137 @@ c       Call tree code
 c
 cc     end of tree build
 c
+       if(ifprint.ge.1) print *, "ltree/1e9", ltree/1.0d9
+       if(ifprint.ge.1) print *, "nlevels=", nlevels
 
 
-      allocate(nterms(0:nlevels))
-c     Compute length of expansions at each level      
-      nmax = 0
-      do i=0,nlevels
+       allocate(nterms(0:nlevels))
+c      Compute length of expansions at each level
+       nmax = 0
+       do i=0,nlevels
          call l3dterms(eps,nterms(i))
          if(nterms(i).gt.nmax) nmax = nterms(i)
-      enddo
+       enddo
 c       
-c     Multipole and local expansions will be held in workspace
-c     in locations pointed to by array iaddr(2,nboxes).
+c      Multipole and local expansions will be held in workspace
+c      in locations pointed to by array iaddr(2,nboxes).
 c
-c     iaddr is pointer to iaddr array, itself contained in workspace.
-c     imptemp is pointer for single expansion (dimensioned by nmax)
+c      iaddr is pointer to iaddr array, itself contained in workspace.
+c      imptemp is pointer for single expansion (dimensioned by nmax)
 c
-c       ... allocate iaddr and temporary arrays
+c      ... allocate iaddr and temporary arrays
 c
 
-      allocate(iaddr(2,nboxes))
-      lmptemp = (nmax+1)*(2*nmax+1)*2*nd
-      allocate(mptemp(lmptemp),mptemp2(lmptemp))
+       allocate(iaddr(2,nboxes))
+       lmptemp = (nmax+1)*(2*nmax+1)*2*nd
+       allocate(mptemp(lmptemp),mptemp2(lmptemp))
 
 c
-cc    reorder pole centers
+cc     reorder pole centers
 c
-      call dreorderf(3, nmpole, cmpole, cmpolesort, isrc)
-      call dreorderf(1, nmpole, rmpole, rmpolesort, isrc)
-      call ireorderf(1, nmpole, mterms, mtermssort, isrc)
+       allocate(cmpolesort(3, nmpole))
+       allocate(rmpolesort(nmpole))
+       allocate(impolesort(nmpole))
+       allocate(mtermssort(nmpole))
 
+       lmpole = 0
+       do i = 1,nmpole
+         lmpole = lmpole + (mterms(i)+1)*(2*mterms(i)+1)
+       end do
+       lmpole = nd * lmpole
+
+       allocate(mpolesort(lmpole))
+
+       call dreorderf(3, nmpole, cmpole, cmpolesort, isrc)
+       call dreorderf(1, nmpole, rmpole, rmpolesort, isrc)
+       call ireorderf(1, nmpole, mterms, mtermssort, isrc)
+
+       impolesort(1) = 1
+       do i=1,nmpole
+         mt = mtermssort(i)
+         ilen = (mt+1)*(2*mt+1)
+
+         ijk = 1
+         do j = 1, ilen
+           do l = 1,nd
+             mpolesort(impolesort(i)+ijk-1)=mpole(impole(isrc(i)+ijk-1)
+             ijk = ijk + 1
+           end do
+         end do
+
+         if(i.lt.nmpole) impolesort(i+1) = impolesort(i) + nd*ilen
+       end do
 
 c
-c     allocate memory need by multipole, local expansions at all
-c     levels
-c     irmlexp is pointer for workspace need by various fmm routines,
+c      allocate memory need by multipole, local expansions at all
+c      levels
+c      irmlexp is pointer for workspace need by various fmm routines,
 c
-      call mpalloc(nd,itree(ipointer(1)),iaddr,nlevels,lmptot,nterms)
-      if(ifprint.ge. 1) print *, "lmptot =",lmptot/1.0d9
-
-
-      allocate(rmlexp(lmptot),stat=iert)
-      if(iert.ne.0) then
+       call mpalloc(nd,itree(ipointer(1)),iaddr,nlevels,lmptot,nterms)
+       if(ifprint.ge. 1) print *, "lmptot =",lmptot/1.0d9
+       allocate(rmlexp(lmptot),stat=iert)
+       if(iert.ne.0) then
          print *, "Cannot allocate mpole expansion workspace"
          print *, "lmptot=", lmptot
          ier = 4
          return
-      endif
+       endif
 
-c     Memory allocation is complete. 
-c     scaling factor for multipole and local expansions at all levels
+       allocate(localsort(lmpole))
+
+c      Memory allocation is complete.
+c      scaling factor for multipole and local expansions at all levels
 c
-      allocate(scales(0:nlevels))
-      do ilev = 0,nlevels
-        scales(ilev) = boxsize(ilev)
-      enddo
+       allocate(scales(0:nlevels))
+       do ilev = 0,nlevels
+         scales(ilev) = boxsize(ilev)
+       enddo
 
-      call cpu_time(time2)
+       call cpu_time(time2)
 C$     time2=omp_get_wtime()      
 
-      if(ifprint.ge.1) 
+       if(ifprint.ge.1) 
      1   call prin2('time before fmm main=*',time2-time1,1)
 c     Call main fmm routine
 
-      call cpu_time(time1)
-C$      time1=omp_get_wtime()
-      call lfmm3dmain(nd,eps,
-     $   nsource,sourcesort,
-     $   ifcharge,chargesort,
-     $   ifdipole,dipvecsort,
-     $   ntarg,targsort,nexpc,expcsort,
-     $   iaddr,rmlexp,lmptot,mptemp,mptemp2,lmptemp,
-     $   itree,ltree,ipointer,ndiv,nlevels,
-     $   nboxes,iper,boxsize,treecenters,isrcse,itargse,iexpcse,
-     $   scales,itree(ipointer(1)),nterms,
-     $   ifpgh,potsort,gradsort,hesssort,
-     $   ifpghtarg,pottargsort,gradtargsort,hesstargsort,ntj,
-     $   texpssort,scjsort,timeinfo,ier)
-      if(ier.ne.0) return
+       call cpu_time(time1)
+C$     time1=omp_get_wtime()
+       call lfmm3dmain_mps(nd,eps,
+     $      nmpole,cmpolesort,rmpolesort,mtermssort,mpolesort,
+     $      impolesort, localsort,
+     $      iaddr,rmlexp,lmptot,mptemp,mptemp2,lmptemp,
+     $      itree,ltree,ipointer,ndiv,nlevels,
+     $      nboxes,iper,boxsize,treecenters,isrcse,
+     $      scales,itree(ipointer(1)),nterms,ier)
+       if(ier.ne.0) return
 
-      call cpu_time(time2)
-C$        time2=omp_get_wtime()
-      if( ifprint .eq. 1 ) call prin2('time in fmm main=*',
+       call cpu_time(time2)
+C$     time2=omp_get_wtime()
+       if( ifprint .eq. 1 ) call prin2('time in fmm main=*',
      1   time2-time1,1)
 
-
-
-      if(ifpgh.ge.1) then
-        call dreorderi(nd,nsource,potsort,pot,isrc)
-      endif
-      if(ifpgh.ge.2) then 
-        call dreorderi(3*nd,nsource,gradsort,grad,isrc)
-        call drescale(nd*3*nsource,grad,b0inv)
-      endif
-
-      if(ifpgh.ge.3) then 
-        call dreorderi(6*nd,nsource,hesssort,hess,isrc)
-        call drescale(nd*6*nsource,hess,b0inv2)
-      endif
-
-
-      if(ifpghtarg.ge.1) then
-        call dreorderi(nd,ntarg,pottargsort,pottarg,itarg)
-      endif
-
-      if(ifpghtarg.ge.2) then
-        call dreorderi(3*nd,ntarg,gradtargsort,gradtarg,itarg)
-        call drescale(nd*3*ntarg,gradtarg,b0inv)
-      endif
-
-      if(ifpghtarg.ge.3) then
-        call dreorderi(6*nd,ntarg,hesstargsort,hesstarg,itarg)
-        call drescale(nd*6*ntarg,hesstarg,b0inv2)
-      endif
-
-      return
-      end
+       return
+       end
 
 c       
 c---------------------------------------------------------------
 c
-      subroutine lfmm3dmain(nd,eps,
-     $     nsource,sourcesort,
-     $     ifcharge,chargesort,
-     $     ifdipole,dipvecsort,
-     $     ntarg,targsort,nexpc,expcsort,
-     $     iaddr,rmlexp,lmptot,mptemp,mptemp2,lmptemp,
-     $     itree,ltree,ipointer,ndiv,nlevels, 
-     $     nboxes,iper,boxsize,centers,isrcse,itargse,iexpcse,
-     $     rscales,laddr,nterms,
-     $     ifpgh,pot,grad,hess,
-     $     ifpghtarg,pottarg,gradtarg,hesstarg,ntj,
-     $     tsort,scjsort,ifnear,timeinfo,ier)
+      subroutine lfmm3dmain_mps(nd,eps,
+     $           nmpole,cmpolesort,rmpolesort,mtermssort,mpolesort,
+     $           impolesort,localsort,
+     $           iaddr,rmlexp,lmptot,mptemp,mptemp2,lmptemp,
+     $           itree,ltree,ipointer,ndiv,nlevels,
+     $           nboxes,iper,boxsize,centers,isrcse,
+     $           rscales,laddr,nterms,ier)
       implicit none
 
-      integer nd
+      integer nd,ndiv,nlevels
       integer ier
       double precision eps
-      integer nsource,ntarg,nexpc
+      integer nmpole, mtermssort(nmpole)
       integer ndiv,nlevels
 
-      integer ifcharge,ifdipole
-      integer ifpgh,ifpghtarg
-
-      double precision sourcesort(3,nsource)
-
-      double precision chargesort(nd,*)
-      double precision dipvecsort(nd,3,*)
-
       double precision targsort(3,ntarg)
-
-      double precision pot(nd,*),grad(nd,3,*),hess(nd,6,*)
-      double precision pottarg(nd,*),gradtarg(nd,3,*),hesstarg(nd,6,*)
 
       integer ntj
       integer ifnear
@@ -408,6 +383,8 @@ c     list 4 variables
       double precision, allocatable :: gboxsubcenters(:,:,:)
       double precision, allocatable :: gboxsort(:,:,:)
       integer, allocatable :: gboxind(:,:)
+      integer, allocatable :: gboxisort(:,:)
+      integer, allocatable :: gboxisort_tmp(:,:)
       integer, allocatable :: gboxfl(:,:,:)
       double precision, allocatable :: gboxcgsort(:,:,:)
       double precision, allocatable :: gboxdpsort(:,:,:,:)
@@ -720,6 +697,8 @@ C$OMP$REDUCTION(max:nmaxt)
 C$OMP END PARALLEL DO
 
       allocate(gboxind(nmaxt,nthd))
+      allocate(gboxisort(nmaxt,nthd))
+      allocate(gboxisort_tmp(nmaxt,nthd))
       allocate(gboxsort(3,nmaxt,nthd))
       allocate(gboxwexp(nd,nexptotp,6,8,nthd))
       allocate(gboxcgsort(nd,nmaxt,nthd))
@@ -755,44 +734,29 @@ C$          ithd=omp_get_thread_num()
      1               centers(1,ibox),boxsize(ilev+1),
      2               gboxind(1,ithd),gboxfl(1,1,ithd),
      3               gboxsubcenters(1,1,ithd))
-                call dreorderf(3,npts,sourcesort(1,istart),
-     1               gboxsort(1,1,ithd),gboxind(1,ithd))
-                if(ifcharge.eq.1) then
-                  call dreorderf(nd,npts,chargesort(1,istart),
-     1                 gboxcgsort(1,1,ithd),gboxind(1,ithd))
-                endif
-                if(ifdipole.eq.1) then
-                  call dreorderf(3*nd,npts,dipvecsort(1,1,istart),
-     1                 gboxdpsort(1,1,1,ithd),gboxind(1,ithd))
-                endif
+
+                do i=istart,iend
+                  gboxisort_tmp(i-istart+1,ithd) = i
+                end do
+
+                call ireordef(1,npts,gboxisort_tmp(1,ithd),
+     1               gboxisort(1,ithd),gboxind(1,ithd)
+
                 do i=1,8
                   if(gboxfl(1,i,ithd).gt.0) then
                     jstart=gboxfl(1,i,ithd)
                     jend=gboxfl(2,i,ithd)
                     npts0=jend-jstart+1
                     jbox=list4ct(ibox)
-                    if(ifcharge.eq.1.and.ifdipole.eq.0) then
-                      call l3dformmpc(nd,rscales(ilev+1),
-     1                   gboxsort(1,jstart,ithd),
-     2                   gboxcgsort(1,jstart,ithd),
-     3                   npts0,gboxsubcenters(1,i,ithd),nterms(ilev+1),
-     4                   gboxmexp(1,i,jbox),wlege,nlege)          
-                    endif
-                    if(ifcharge.eq.0.and.ifdipole.eq.1) then
-                      call l3dformmpd(nd,rscales(ilev+1),
-     1                   gboxsort(1,jstart,ithd),
-     2                   gboxdpsort(1,1,jstart,ithd),
-     3                   npts0,gboxsubcenters(1,i,ithd),nterms(ilev+1),
-     4                   gboxmexp(1,i,jbox),wlege,nlege)          
-                    endif
-                    if(ifcharge.eq.1.and.ifdipole.eq.1) then
-                      call l3dformmpcd(nd,rscales(ilev+1),
-     1                   gboxsort(1,jstart,ithd),
-     2                   gboxcgsort(1,jstart,ithd),
-     3                   gboxdpsort(1,1,jstart,ithd),
-     4                   npts0,gboxsubcenters(1,i,ithd),nterms(ilev+1),
-     5                   gboxmexp(1,i,jbox),wlege,nlege)          
-                    endif
+
+                    do j = jstart,jend
+                      k = gboxisort(j,ithd)
+                      call l3dmpmp(nd,rmpolesort(k),cmpolesort(1,k),
+     1                     mpolesort(impolesort(k)),mtermssort(k),
+     2                     rscales(ilev+1),gboxsubcenters(1,i,ithd),
+     3                     gboxmexp(1,i,jbox),nterms(ilev+1),dc,lca)
+                    end do
+
                     call l3dmpmp(nd,rscales(ilev+1),
      1                   gboxsubcenters(1,i,ithd),gboxmexp(1,i,jbox),
      2                   nterms(ilev+1),rscales(ilev),centers(1,ibox),
@@ -890,16 +854,14 @@ c
 c
 c
       if(ifprint .ge. 1) 
-     $   call prinf('=== STEP 1 (form mp) ====*',i,0)
+     $  call prinf('=== STEP 1 (shift mp) ====*',i,0)
         call cpu_time(time1)
-C$        time1=omp_get_wtime()
+C$      time1=omp_get_wtime()
 c
-c       ... step 1, locate all charges, assign them to boxes, and
-c       form multipole expansions
-
+c       step 1, shift incoming multipole expansion to the center
+c       of each leaf-node box
 
       do ilev=2,nlevels
-         if(ifcharge.eq.1.and.ifdipole.eq.0) then
 C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,npts,istart,iend,nchild)
             do ibox=laddr(1,ilev),laddr(2,ilev)
@@ -911,58 +873,15 @@ C$OMP$PRIVATE(ibox,npts,istart,iend,nchild)
                nchild = itree(ipointer(4)+ibox-1)
 
                if(npts.gt.0.and.nchild.eq.0.and.list4ct(ibox).eq.0) then
-                  call l3dformmpc(nd,rscales(ilev),
-     1            sourcesort(1,istart),chargesort(1,istart),npts,
-     2            centers(1,ibox),nterms(ilev),
-     3            rmlexp(iaddr(1,ibox)),wlege,nlege)          
+                 do i = istart,iend
+                   call l3dmpmp(nd,rmpolesort(i),cmpolesort(1,i),
+     1                  mpolesort(impolesort(i)),mtermssort(i),
+     2                  rscales(ilev),centers(1,ibox),
+     3                  rmlexp(iaddr(1,ibox)),nterms(ilev),dc,lca)
+                 end do
                endif
             enddo
 C$OMP END PARALLEL DO          
-         endif
-
-         if(ifcharge.eq.0.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,npts,istart,iend,nchild)
-            do ibox=laddr(1,ilev),laddr(2,ilev)
-
-               istart = isrcse(1,ibox) 
-               iend = isrcse(2,ibox) 
-               npts = iend-istart+1
-
-               nchild = itree(ipointer(4)+ibox-1)
-
-               if(npts.gt.0.and.nchild.eq.0.and.list4ct(ibox).eq.0) then
-                  call l3dformmpd(nd,rscales(ilev),
-     1            sourcesort(1,istart),
-     2            dipvecsort(1,1,istart),npts,
-     2            centers(1,ibox),nterms(ilev),
-     3            rmlexp(iaddr(1,ibox)),wlege,nlege)          
-               endif
-            enddo
-C$OMP END PARALLEL DO          
-         endif
-
-         if(ifdipole.eq.1.and.ifcharge.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,npts,istart,iend,nchild)
-            do ibox=laddr(1,ilev),laddr(2,ilev)
-
-               istart = isrcse(1,ibox) 
-               iend = isrcse(2,ibox)
-               npts = iend-istart+1
-
-               nchild = itree(ipointer(4)+ibox-1)
-
-               if(npts.gt.0.and.nchild.eq.0.and.list4ct(ibox).eq.0) then
-                  call l3dformmpcd(nd,rscales(ilev),
-     1            sourcesort(1,istart),chargesort(1,istart),
-     2            dipvecsort(1,1,istart),npts,
-     2            centers(1,ibox),nterms(ilev),
-     3            rmlexp(iaddr(1,ibox)),wlege,nlege)          
-               endif
-            enddo
-C$OMP END PARALLEL DO          
-         endif
       enddo
       if(ifprint.ge.1) print *,"nboxes:",nboxes,"leaf:",cntlist4
 
@@ -1354,197 +1273,6 @@ C$         ithd=omp_get_thread_num()
                 endif
               endif
 
-              if(ifpgh.eq.2) then
-                istart = isrcse(1,ibox)
-                iend = isrcse(2,ibox) 
-                npts = iend-istart+1
-                if(npts.gt.0) then
-                  call subdividebox(sourcesort(1,istart),npts,
-     1                    centers(1,ibox),boxsize(ilev),
-     2                    iboxsrcind(1,ithd),iboxfl(1,1,ithd),
-     3                    iboxsubcenters(1,1,ithd))
-                  call dreorderf(3,npts,sourcesort(1,istart),
-     1                    iboxsrc(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(nd,npts,pot(1,istart),
-     1                    iboxpot(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(3*nd,npts,grad(1,1,istart),
-     1                   iboxgrad(1,1,1,ithd),iboxsrcind(1,ithd))
-                  do i=1,8
-                    if(iboxfl(1,i,ithd).gt.0) then
-                      jstart=iboxfl(1,i,ithd)
-                      jend=iboxfl(2,i,ithd)
-                      npts0=jend-jstart+1
-                      if(npts0.gt.0) then
-                        call l3dtaevalg(nd,rscales(ilev),
-     1                    iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
-     2                    nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
-     3                    iboxpot(1,jstart,ithd),
-     4                    iboxgrad(1,1,jstart,ithd),wlege,nlege)
-                      endif
-                    endif
-                  enddo
-                  call dreorderi(nd,npts,iboxpot(1,1,ithd),
-     1                pot(1,istart),iboxsrcind(1,ithd))
-                  call dreorderi(3*nd,npts,iboxgrad(1,1,1,ithd),
-     1              grad(1,1,istart),iboxsrcind(1,ithd))
-                endif
-              endif
-c
-c  continue from here
-c
-              
-
-              if(ifpgh.eq.3) then
-                istart = isrcse(1,ibox) 
-                iend = isrcse(2,ibox)
-                npts = iend-istart+1
-                if(npts.gt.0) then
-                  call subdividebox(sourcesort(1,istart),npts,
-     1                    centers(1,ibox),boxsize(ilev),
-     2                    iboxsrcind(1,ithd),iboxfl(1,1,ithd),
-     3                    iboxsubcenters(1,1,ithd))
-                  call dreorderf(3,npts,sourcesort(1,istart),
-     1                    iboxsrc(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(nd,npts,pot(1,istart),
-     1                    iboxpot(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(3*nd,npts,grad(1,1,istart),
-     1                   iboxgrad(1,1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(6*nd,npts,hess(1,1,istart),
-     1                 iboxhess(1,1,1,ithd),iboxsrcind(1,ithd))
-           
-                  do i=1,8
-                    if(iboxfl(1,i,ithd).gt.0) then
-                      jstart=iboxfl(1,i,ithd)
-                      jend=iboxfl(2,i,ithd)
-                      npts0=jend-jstart+1
-                      if(npts0.gt.0) then
-                        call l3dtaevalh(nd,rscales(ilev),
-     1                     iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
-     2                     nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
-     3                     iboxpot(1,jstart,ithd),
-     4                     iboxgrad(1,1,jstart,ithd),
-     4                     iboxhess(1,1,jstart,ithd),scarray(1,ilev))
-                      endif
-                    endif
-                  enddo
-                  call dreorderi(nd,npts,iboxpot(1,1,ithd),
-     1                pot(1,istart),iboxsrcind(1,ithd))
-                  call dreorderi(3*nd,npts,iboxgrad(1,1,1,ithd),
-     1              grad(1,1,istart),iboxsrcind(1,ithd))
-                  call dreorderi(6*nd,npts,iboxhess(1,1,1,ithd),
-     1              hess(1,1,istart),iboxsrcind(1,ithd))
-                endif
-              endif
-
-
-              if(ifpghtarg.eq.1) then
-                istart = itargse(1,ibox) 
-                iend = itargse(2,ibox) 
-                npts = iend-istart+1
-                if(npts.gt.0) then
-                  call subdividebox(targsort(1,istart),npts,
-     1                   centers(1,ibox),boxsize(ilev),
-     2                   iboxsrcind(1,ithd),iboxfl(1,1,ithd),
-     3                   iboxsubcenters(1,1,ithd))
-                  call dreorderf(3,npts,targsort(1,istart),
-     1                   iboxsrc(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(nd,npts,pottarg(1,istart),
-     1                   iboxpot(1,1,ithd),iboxsrcind(1,ithd))
-                  do i=1,8
-                    if(iboxfl(1,i,ithd).gt.0) then
-                      jstart=iboxfl(1,i,ithd)
-                      jend=iboxfl(2,i,ithd)
-                      npts0=jend-jstart+1
-                      if(npts0.gt.0) then
-                        call l3dtaevalp(nd,rscales(ilev),
-     1                    iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
-     2                    nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
-     3                    iboxpot(1,jstart,ithd),wlege,nlege)
-                      endif
-                    endif
-                  enddo
-                  call dreorderi(nd,npts,iboxpot(1,1,ithd),
-     1              pottarg(1,istart),iboxsrcind(1,ithd))
-                endif
-              endif
-
-              if(ifpghtarg.eq.2) then
-                istart = itargse(1,ibox) 
-                iend = itargse(2,ibox) 
-                npts = iend-istart+1
-                if(npts.gt.0) then
-                  call subdividebox(targsort(1,istart),npts,
-     1                   centers(1,ibox),boxsize(ilev),
-     2                   iboxsrcind(1,ithd),iboxfl(1,1,ithd),
-     3                   iboxsubcenters(1,1,ithd))
-                  call dreorderf(3,npts,targsort(1,istart),
-     1                   iboxsrc(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(nd,npts,pottarg(1,istart),
-     1                   iboxpot(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(3*nd,npts,gradtarg(1,1,istart),
-     1                    iboxgrad(1,1,1,ithd),iboxsrcind(1,ithd))
-                  do i=1,8
-                    if(iboxfl(1,i,ithd).gt.0) then
-                      jstart=iboxfl(1,i,ithd)
-                      jend=iboxfl(2,i,ithd)
-                      npts0=jend-jstart+1
-                      if(npts0.gt.0) then
-                        call l3dtaevalg(nd,rscales(ilev),
-     1                     iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
-     2                     nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
-     3                     iboxpot(1,jstart,ithd),
-     4                     iboxgrad(1,1,jstart,ithd),wlege,nlege)
-                      endif
-                    endif
-                  enddo
-                  call dreorderi(nd,npts,iboxpot(1,1,ithd),
-     1               pottarg(1,istart),iboxsrcind(1,ithd))
-                  call dreorderi(3*nd,npts,iboxgrad(1,1,1,ithd),
-     1                 gradtarg(1,1,istart),iboxsrcind(1,ithd))
-                endif
-              endif
-
-              if(ifpghtarg.eq.3) then
-                istart = itargse(1,ibox) 
-                iend = itargse(2,ibox) 
-                npts = iend-istart+1
-                if(npts.gt.0) then
-                  call subdividebox(targsort(1,istart),npts,
-     1                   centers(1,ibox),boxsize(ilev),
-     2                   iboxsrcind(1,ithd),iboxfl(1,1,ithd),
-     3                   iboxsubcenters(1,1,ithd))
-                  call dreorderf(3,npts,targsort(1,istart),
-     1                   iboxsrc(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(nd,npts,pottarg(1,istart),
-     1                   iboxpot(1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(3*nd,npts,gradtarg(1,1,istart),
-     1                    iboxgrad(1,1,1,ithd),iboxsrcind(1,ithd))
-                  call dreorderf(6*nd,npts,hesstarg(1,1,istart),
-     1                 iboxhess(1,1,1,ithd),iboxsrcind(1,ithd))
-                  do i=1,8
-                    if(iboxfl(1,i,ithd).gt.0) then
-                      jstart=iboxfl(1,i,ithd)
-                      jend=iboxfl(2,i,ithd)
-                      npts0=jend-jstart+1
-                      if(npts0.gt.0) then
-                        call l3dtaevalh(nd,rscales(ilev),
-     1                    iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
-     2                    nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
-     3                    iboxpot(1,jstart,ithd),
-     4                    iboxgrad(1,1,jstart,ithd),
-     4                    iboxhess(1,1,jstart,ithd),scarray(1,ilev))
-                      endif
-                    endif
-                  enddo
-                  call dreorderi(nd,npts,iboxpot(1,1,ithd),
-     1               pottarg(1,istart),iboxsrcind(1,ithd))
-                  call dreorderi(3*nd,npts,iboxgrad(1,1,1,ithd),
-     1                 gradtarg(1,1,istart),iboxsrcind(1,ithd))
-                  call dreorderi(6*nd,npts,iboxhess(1,1,1,ithd),
-     1                 hesstarg(1,1,istart),iboxsrcind(1,ithd))
-                endif
-              endif
-
             endif
          enddo
 C$OMP END PARALLEL DO        
@@ -1613,7 +1341,7 @@ C$        time2=omp_get_wtime()
 
 
       if(ifprint.ge.1)
-     $    call prinf('=== step 5 (eval lo) ===*',i,0)
+     $    call prinf('=== step 5 (LOC to CEN) ===*',i,0)
 
 c     ... step 6, evaluate all local expansions
 c
@@ -1637,7 +1365,6 @@ C$OMP$SCHEDULE(DYNAMIC)
                istart = iexpcse(1,ibox) 
                iend = iexpcse(2,ibox) 
                do i=istart,iend
-
                   call l3dlocloc(nd,rscales(ilev),
      1             centers(1,ibox),rmlexp(iaddr(2,ibox)),
      2             nterms(ilev),rscales(ilev),expcsort(1,i),
@@ -1646,125 +1373,6 @@ C$OMP$SCHEDULE(DYNAMIC)
             endif
          enddo
 C$OMP END PARALLEL DO
-      enddo
-
-c
-cc        evaluate local expansion at source and target
-c         locations
-c
-      do ilev = 0,nlevels
-        if(ifpgh.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-          do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-              istart = isrcse(1,ibox) 
-              iend = isrcse(2,ibox)
-              npts = iend-istart+1
-              call l3dtaevalp(nd,rscales(ilev),centers(1,ibox),
-     1         rmlexp(iaddr(2,ibox)),nterms(ilev),sourcesort(1,istart),
-     2         npts,pot(1,istart),wlege,nlege)
-            endif
-          enddo
-C$OMP END PARALLEL DO         
-        endif
-
-        if(ifpgh.eq.2) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-          do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-              istart = isrcse(1,ibox) 
-              iend = isrcse(2,ibox)
-              npts = iend-istart+1
-              call l3dtaevalg(nd,rscales(ilev),centers(1,ibox),
-     1         rmlexp(iaddr(2,ibox)),nterms(ilev),sourcesort(1,istart),
-     2         npts,pot(1,istart),grad(1,1,istart),wlege,nlege)
-            endif
-          enddo
-C$OMP END PARALLEL DO         
-        endif
-
-
-        if(ifpgh.eq.3) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-          do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-              istart = isrcse(1,ibox)
-              iend = isrcse(2,ibox)
-              npts = iend-istart+1
-              call l3dtaevalh(nd,rscales(ilev),centers(1,ibox),
-     1         rmlexp(iaddr(2,ibox)),nterms(ilev),sourcesort(1,istart),
-     2         npts,pot(1,istart),grad(1,1,istart),hess(1,1,istart),
-     3         scarray(1,ilev))
-            endif
-          enddo
-C$OMP END PARALLEL DO         
-        endif
-
-        if(ifpghtarg.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-          do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-              istart = itargse(1,ibox)
-              iend = itargse(2,ibox)
-              npts = iend-istart+1
-              call l3dtaevalp(nd,rscales(ilev),centers(1,ibox),
-     1         rmlexp(iaddr(2,ibox)),nterms(ilev),targsort(1,istart),
-     2         npts,pottarg(1,istart),wlege,nlege)
-            endif
-          enddo
-C$OMP END PARALLEL DO         
-        endif
-
-        if(ifpghtarg.eq.2) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-          do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-              istart = itargse(1,ibox)
-              iend = itargse(2,ibox)
-              npts = iend-istart+1
-
-              call l3dtaevalg(nd,rscales(ilev),centers(1,ibox),
-     1         rmlexp(iaddr(2,ibox)),nterms(ilev),targsort(1,istart),
-     2         npts,pottarg(1,istart),gradtarg(1,1,istart),wlege,nlege)
-            endif
-          enddo
-C$OMP END PARALLEL DO         
-        endif
-
-        if(ifpghtarg.eq.3) then
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-          do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-              istart = itargse(1,ibox)
-              iend = itargse(2,ibox)
-              npts = iend-istart+1
-
-              call l3dtaevalh(nd,rscales(ilev),centers(1,ibox),
-     1         rmlexp(iaddr(2,ibox)),nterms(ilev),targsort(1,istart),
-     2         npts,pottarg(1,istart),gradtarg(1,1,istart),
-     3         hesstarg(1,1,istart),scarray(1,ilev))
-            endif
-          enddo
-C$OMP END PARALLEL DO         
-        endif
       enddo
 
     
@@ -1778,49 +1386,11 @@ C$        time2=omp_get_wtime()
       call cpu_time(time1)
 C$        time1=omp_get_wtime()
 
-      if(ifnear.eq.0) goto 1000
-c
-cc       directly form local expansions for list1 sources
-c        at expansion centers. 
-c        (note: this part is not relevant for particle codes.
-c         It is relevant only for qbx codes)
-
-
-      do ilev=0,nlevels
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarte,iende,i,jbox)
-C$OMP$PRIVATE(jstart,jend)
-         do ibox = laddr(1,ilev),laddr(2,ilev)
-            istarte = iexpcse(1,ibox) 
-            iende = iexpcse(2,ibox) 
-
-            
-
-            do i =1,nlist1(ibox)
-               jbox = list1(i,ibox)
-               jstart = isrcse(1,jbox) 
-               jend = isrcse(2,jbox) 
-
-               call lfmm3dexpc_direct(nd,jstart,jend,istarte,
-     1         iende,sourcesort,ifcharge,chargesort,ifdipole,
-     2         dipvecsort,expcsort,tsort,scjsort,ntj,
-     3         wlege,nlege)
-            enddo
-         enddo
-C$OMP END PARALLEL DO
-      enddo
-
 c
 cc        directly evaluate potential at sources and targets 
 c         due to sources in list1
 
       do ilev=0,nlevels
-c
-cc           evaluate at the sources
-c
-
-        if(ifpgh.eq.1) then
-          if(ifcharge.eq.1.and.ifdipole.eq.0) then
 C$OMP PARALLEL DO DEFAULT(SHARED)     
 C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
 C$OMP$SCHEDULE(DYNAMIC)      
@@ -1828,431 +1398,25 @@ C$OMP$SCHEDULE(DYNAMIC)
               istarts = isrcse(1,ibox) 
               iends = isrcse(2,ibox)
               npts0 = iends-istarts+1
-
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox) 
-                jstart =  isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcp(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),thresh)          
-              enddo
+              do iloc = istarts,iends
+                do i = 1,nlist1(ibox)
+                  jbox = list1(i,ibox)
+                  jstart = isrcse(1,jbox)
+                  jend = isrcse(2,jbox)
+                  npts = jend - jstart+1
+                  do j = jstart,jend
+                    d = ()
+                    d = sqrt(d)
+                    if (d .gt. thresh) then
+                      call l3dmploc()
+                    end if
+                  end do
+                end do
+              end do
             enddo
 C$OMP END PARALLEL DO     
-          endif
+      end do
 
-          if(ifcharge.eq.0.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart =  isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectdp(nd,sourcesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.1.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcdp(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-        endif
-
-        if(ifpgh.eq.2) then
-          if(ifcharge.eq.1.and.ifdipole.eq.0) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcg(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),grad(1,1,istarts),thresh)   
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.0.and.ifdipole.eq.1) then
-
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectdg(nd,sourcesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),grad(1,1,istarts),thresh)     
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.1.and.ifdipole.eq.1) then
-
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcdg(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),grad(1,1,istarts),thresh)      
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-        endif
-
-
-        if(ifpgh.eq.3) then
-          if(ifcharge.eq.1.and.ifdipole.eq.0) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectch(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),grad(1,1,istarts),
-     3             hess(1,1,istarts),thresh)   
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.0.and.ifdipole.eq.1) then
-
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectdh(nd,sourcesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),grad(1,1,istarts),
-     3             hess(1,1,istarts),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.1.and.ifdipole.eq.1) then
-
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox)
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcdh(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,sourcesort(1,istarts),
-     2             npts0,pot(1,istarts),grad(1,1,istarts),
-     3             hess(1,1,istarts),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-        endif
-
-        if(ifpghtarg.eq.1) then
-          if(ifcharge.eq.1.and.ifdipole.eq.0) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcp(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.0.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectdp(nd,sourcesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.1.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcdp(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-        endif
-
-        if(ifpghtarg.eq.2) then
-          if(ifcharge.eq.1.and.ifdipole.eq.0) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcg(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),gradtarg(1,1,istartt),
-     3             thresh)   
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.0.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectdg(nd,sourcesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),gradtarg(1,1,istartt),
-     3             thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.1.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcdg(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),gradtarg(1,1,istartt),
-     3             thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-        endif
-
-        if(ifpghtarg.eq.3) then
-          if(ifcharge.eq.1.and.ifdipole.eq.0) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectch(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),gradtarg(1,1,istartt),
-     3             hesstarg(1,1,istartt),thresh)   
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.0.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectdh(nd,sourcesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),gradtarg(1,1,istartt),
-     3             hesstarg(1,1,istartt),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-
-          if(ifcharge.eq.1.and.ifdipole.eq.1) then
-C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istartt,iendt,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
-            do ibox = laddr(1,ilev),laddr(2,ilev)
-              istartt = itargse(1,ibox)
-              iendt = itargse(2,ibox)
-              npts0 = iendt-istartt+1
-              
-              do i=1,nlist1(ibox)
-                jbox = list1(i,ibox)
-                jstart = isrcse(1,jbox)
-                jend = isrcse(2,jbox)
-                npts = jend-jstart+1
-                call l3ddirectcdh(nd,sourcesort(1,jstart),
-     1             chargesort(1,jstart),
-     2             dipvecsort(1,1,jstart),npts,targsort(1,istartt),
-     2             npts0,pottarg(1,istartt),gradtarg(1,1,istartt),
-     3             hesstarg(1,1,istartt),thresh)          
-              enddo
-            enddo
-C$OMP END PARALLEL DO     
-          endif
-        endif
-      enddo
- 1000 continue      
  
       call cpu_time(time2)
 C$        time2=omp_get_wtime()
@@ -2267,121 +1431,3 @@ C$        time2=omp_get_wtime()
 
       return
       end
-c------------------------------------------------
-      subroutine lfmm3dexpc_direct(nd,istart,iend,jstart,jend,
-     $     source,ifcharge,charge,ifdipole,
-     $     dipvec,expc,texps,scj,ntj,wlege,nlege)
-c--------------------------------------------------------------------
-c     This subroutine adds the local expansions due to sources
-c     istart to iend in the source array at the expansion centers
-c     jstart to jend in the expansion center array to the existing 
-c     local expansions at the corresponding expansion centers.
-c
-c     INPUT arguments
-c-------------------------------------------------------------------
-c     nd           in: integer
-c                  number of charge densities
-c
-c     istart       in:Integer
-c                  Starting index in source array whose expansions
-c                  we wish to add
-c
-c     iend         in:Integer
-c                  Last index in source array whose expansions
-c                  we wish to add
-c
-c     jstart       in: Integer
-c                  First index in the expansion center array at 
-c                  which we  wish to compute the expansions
-c 
-c     jend         in:Integer
-c                  Last index in expansion center array at 
-c                  which we wish to compute the expansions
-c 
-c     scjsort      in: double precision(*)
-c                  Scale of expansions formed at the expansion centers
-c
-c     source       in: double precision(3,ns)
-c                  Source locations
-c
-c     ifcharge     in: Integer
-c                  flag for including expansions due to charges
-c                  The expansion due to charges will be included
-c                  if ifcharge == 1
-c
-c     charge       in: double precision
-c                  Charge at the source locations
-c
-c     ifdipole     in: Integer
-c                 flag for including expansions due to dipoles
-c                 The expansion due to dipoles will be included
-c                 if ifdipole == 1
-c
-c     dipvec      in: double precision(3,ns)
-c                 Dipole orientation vector at the source locations
-c
-c     expc        in: double precision(3,nexpc)
-c                 Expansion center locations
-c
-c     ntj         in: Integer
-c                 Number of terms in expansion
-c
-c     wlege       in: double precision(0:nlege,0:nlege)
-c                 precomputed array of recurrence relation
-c                 coeffs for Ynm calculation.
-c
-c    nlege        in: integer
-c                 dimension parameter for wlege
-c------------------------------------------------------------
-c     OUTPUT
-c
-c   Updated expansions at the targs
-c   texps       out: double complex(0:ntj,-ntj:ntj,expc) 
-c                 coeffs for local expansions
-c-------------------------------------------------------               
-        implicit none
-c
-        integer istart,iend,jstart,jend,ns,j, nlege
-        integer ifcharge,ifdipole,ier,nd
-        double precision source(3,*)
-        double precision scj(*)
-        double precision wlege(*)
-        double precision charge(nd,*)
-        double precision dipvec(nd,3,*)
-        double precision expc(3,*)
-
-        integer nlevels,ntj
-c
-        double complex texps(nd,0:ntj,-ntj:ntj,*)
-        
-c
-        ns = iend - istart + 1
-        if(ifcharge.eq.1.and.ifdipole.eq.0) then
-          do j=jstart,jend
-            call l3dformtac(nd,scj(j),
-     1        source(1,istart),charge(1,istart),ns,
-     2        expc(1,j),ntj,texps(1,0,-ntj,j),wlege,nlege)
-           enddo
-         endif
-
-         if(ifcharge.eq.0.and.ifdipole.eq.1) then
-          do j=jstart,jend
-            call l3dformtad(nd,scj(j),
-     1        source(1,istart),
-     2        dipvec(1,1,istart),ns,expc(1,j),ntj,texps(1,0,-ntj,j),
-     3        wlege,nlege)
-           enddo
-         endif
-
-         if(ifcharge.eq.1.and.ifdipole.eq.1) then
-          do j=jstart,jend
-            call l3dformtacd(nd,scj(j),
-     1        source(1,istart),charge(1,istart),
-     2        dipvec(1,1,istart),ns,expc(1,j),ntj,texps(1,0,-ntj,j),
-     3        wlege,nlege)
-           enddo
-         endif
-
-c
-        return
-        end
