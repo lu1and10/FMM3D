@@ -1148,7 +1148,14 @@ C$         ithd=omp_get_thread_num()
      1                     iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
      2                     nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
      3                     iboxpot(1,jstart,ithd),wlege,nlege)
-                        call l3dmoloc
+
+                        call l3dlocloc(nd, rscales(ilev),
+     1                       centers(1,ibox), rmlexp(iaddr(2, ibox)),
+     2                       nterms(ilev), rmpolesort(i),
+     3                       cmpolesort(1,i),
+     4                       localsort(impolesort(i)), mtermssort(i),
+     5                       dc,lca)
+
                       endif
                     endif
                   enddo
@@ -1267,10 +1274,17 @@ C$OMP$SCHEDULE(DYNAMIC)
                   jend = isrcse(2,jbox)
                   npts = jend - jstart+1
                   do j = jstart,jend
-                    d = ()
+                    d = (cmpolesort(1,j)-cmpolesort(1,iloc))**2
+     1                + (cmpolesort(2,j)-cmpolesort(2,iloc))**2
+     2                + (cmpolesort(3,j)-cmpolesort(3,iloc))**2
                     d = sqrt(d)
                     if (d .gt. thresh) then
-                      call l3dmploc()
+                      call l3dmploc(nd, rmpolesort(j),
+     1                     cmpolesort(1,j),
+     2                     mpolesort(impolesort(j)), mtermssort(j),
+     3                     rmpolesort(iloc), cmpolesort(1,iloc),
+     4                     localsort(impolesort(iloc)),
+     5                     mtermssort(iloc),dc,lca)
                     end if
                   end do
                 end do
