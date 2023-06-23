@@ -19,8 +19,7 @@ c
        integer *8 ipointer(8),ltree
        integer, allocatable :: itree(:)
        integer, allocatable :: isrcse(:,:),itargse(:,:),isrc(:)
-       integer, allocatable :: iexpcse(:,:)
-       integer iexpc, itarg, ntarg
+       integer itarg, ntarg
        double precision :: targ(3)
        double precision, allocatable :: treecenters(:,:),boxsize(:)
 
@@ -46,19 +45,12 @@ c
        integer *8 lmptot
        double precision, allocatable :: mptemp(:),mptemp2(:)
 
-c
-cc     temporary variables not main fmm routine but
-c      not used in particle code
-       double precision expc(3),scjsort(1),radexp
-       double complex texpssort(100)
-       double precision expcsort(3)
-       integer ntj,nexpc,nadd
 
 c
 cc     other temporary variables
 c
-       integer i,iert,ifprint,ilev,idim
-       double precision time1,time2,omp_get_wtime,second
+       integer i,iert,ifprint,ilev
+       double precision time1,time2,omp_get_wtime
 
 c
 c
@@ -80,10 +72,6 @@ c
 c
 cc     set tree flags
 c 
-       nexpc = 0
-       radexp = 0
-       nadd = 0
-       ntj = 0
        nlmax = 51
        nlevels = 0
        nboxes = 0
@@ -115,7 +103,7 @@ c       Call tree code
      2      treecenters,boxsize)
       
 
-       allocate(isrcse(2,nboxes),itargse(2,nboxes),iexpcse(2,nboxes))
+       allocate(isrcse(2,nboxes),itargse(2,nboxes))
        allocate(isrc(nmpole))
 
        call pts_tree_sort(nmpole,cmpole,itree,ltree,nboxes,nlevels,
@@ -233,6 +221,19 @@ C$     time2=omp_get_wtime()
        if( ifprint .eq. 1 ) call prin2('time in fmm main=*',
      1   time2-time1,1)
 
+       do i = 1,nmpole
+         mt = mtermssort(i)
+         ilen = (mt+1)*(2*mt+1)
+
+         ijk = 1
+         do j = 1,ilen
+           do l = 1,nd
+             local(impole(isrc(i)+ijk-1)=localsort(impolesort(i)+ijk-1)
+             ijk = ijk+1
+           end do
+         end do
+       end do
+
        return
        end
 
@@ -256,11 +257,7 @@ c
 
       double precision targsort(3,ntarg)
 
-      integer ntj
       integer ifnear
-      double precision expcsort(3,nexpc)
-      double complex tsort(nd,0:ntj,-ntj:ntj,nexpc)
-      double precision scjsort(nexpc)
 
       integer *8 iaddr(2,nboxes), lmptot
       integer lmptemp
@@ -281,7 +278,7 @@ c
       integer nboxes
       double precision rscales(0:nlevels)
       double precision boxsize(0:nlevels)
-      integer isrcse(2,nboxes),itargse(2,nboxes),iexpcse(2,nboxes)
+      integer isrcse(2,nboxes),itargse(2,nboxes)
       integer, allocatable :: nlist1(:),list1(:,:)
       integer, allocatable :: nlist2(:),list2(:,:)
       integer, allocatable :: nlist3(:),list3(:,:)
@@ -597,21 +594,6 @@ cc    compute array of factorials
       
       if(ifprint.ge.1) 
      1   call prin2('end of generating plane wave info*',i,0)
-c
-c
-c     ... set the expansion coefficients to zero
-c
-C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i,j,k,idim)
-      do i=1,nexpc
-        do k=-ntj,ntj
-          do j = 0,ntj
-            do idim=1,nd
-              tsort(idim,j,k,i)=0
-            enddo
-          enddo
-        enddo
-      enddo
-C$OMP END PARALLEL DO
 
 c       
       do i=1,6
@@ -630,25 +612,6 @@ C$OMP$PRIVATE(ibox)
           call mpzero(nd,rmlexp(iaddr(2,ibox)),nterms(ilev))
         enddo
 C$OMP END PARALLEL DO        
-      enddo
-
-c
-c      set scjsort
-c
-      do ilev=0,nlevels
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i)
-         do ibox=laddr(1,ilev),laddr(2,ilev)
-            nchild = itree(ipointer(4)+ibox-1)
-            if(nchild.gt.0) then
-               istart = iexpcse(1,ibox)
-               iend = iexpcse(2,ibox) 
-               do i=istart,iend
-                  scjsort(i) = rscales(ilev)
-               enddo
-            endif
-         enddo
-C$OMP END PARALLEL DO
       enddo
 
 
@@ -1100,24 +1063,12 @@ C$OMP$PRIVATE(ithd)
            ithd = 0
 C$         ithd=omp_get_thread_num()
            ithd = ithd + 1
-           npts = 0
-           if(ifpghtarg.gt.0) then
-             istart = itargse(1,ibox)
-             iend = itargse(2,ibox) 
-             npts = npts + iend-istart+1
-           endif
-
-           istart = iexpcse(1,ibox) 
-           iend = iexpcse(2,ibox) 
-           npts = npts + iend-istart+1
 
            nchild = itree(ipointer(4)+ibox-1)
 
-           if(ifpgh.gt.0) then
-             istart = isrcse(1,ibox) 
-             iend = isrcse(2,ibox) 
-             npts = npts + iend-istart+1
-           endif
+           istart = isrcse(1,ibox)
+           iend = isrcse(2,ibox)
+           npts = npts + iend-istart+1
 
 
            if(npts.gt.0.and.nchild.gt.0) then
@@ -1303,23 +1254,9 @@ C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox,i,jbox,istart,iend,npts)
          do ibox = laddr(1,ilev),laddr(2,ilev)
 
-            npts = 0
-
-            if(ifpghtarg.gt.0) then
-               istart = itargse(1,ibox)
-               iend = itargse(2,ibox) 
-               npts = npts + iend-istart+1
-            endif
-
-            istart = iexpcse(1,ibox) 
-            iend = iexpcse(2,ibox) 
-            npts = npts + iend-istart+1
-
-            if(ifpgh.gt.0) then
-               istart = isrcse(1,ibox)
-               iend = isrcse(2,ibox) 
-               npts = npts + iend-istart+1
-            endif
+            istart = isrcse(1,ibox)
+            iend = isrcse(2,ibox)
+            npts = iend-istart+1
 
             if(npts.gt.0) then
                do i=1,8
@@ -1349,31 +1286,6 @@ c
       call cpu_time(time1)
 C$        time1=omp_get_wtime()
 C
-
-c
-cc       shift local expansion to local epxanion at expansion centers
-c        (note: this part is not relevant for particle codes.
-c        it is relevant only for qbx codes)
-
-      do ilev = 0,nlevels
-C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,nchild,istart,iend,i)
-C$OMP$SCHEDULE(DYNAMIC)      
-         do ibox = laddr(1,ilev),laddr(2,ilev)
-            nchild=itree(ipointer(4)+ibox-1)
-            if(nchild.eq.0) then 
-               istart = iexpcse(1,ibox) 
-               iend = iexpcse(2,ibox) 
-               do i=istart,iend
-                  call l3dlocloc(nd,rscales(ilev),
-     1             centers(1,ibox),rmlexp(iaddr(2,ibox)),
-     2             nterms(ilev),rscales(ilev),expcsort(1,i),
-     3             tsort(1,0,-ntj,i),ntj,dc,lca)
-               enddo
-            endif
-         enddo
-C$OMP END PARALLEL DO
-      enddo
 
     
       call cpu_time(time2)
