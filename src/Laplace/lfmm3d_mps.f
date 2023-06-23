@@ -18,7 +18,7 @@ c
        integer nlmax, nlmin, iper, ifunif
        integer *8 ipointer(8),ltree
        integer, allocatable :: itree(:)
-       integer, allocatable :: isrcse(:,:),itargse(:,:),isrc(:)
+       integer, allocatable :: isrcse(:,:),isrc(:)
        integer itarg, ntarg
        double precision :: targ(3)
        double precision, allocatable :: treecenters(:,:),boxsize(:)
@@ -103,7 +103,7 @@ c       Call tree code
      2      treecenters,boxsize)
       
 
-       allocate(isrcse(2,nboxes),itargse(2,nboxes))
+       allocate(isrcse(2,nboxes))
        allocate(isrc(nmpole))
 
        call pts_tree_sort(nmpole,cmpole,itree,ltree,nboxes,nlevels,
@@ -240,207 +240,180 @@ C$     time2=omp_get_wtime()
 c       
 c---------------------------------------------------------------
 c
-      subroutine lfmm3dmain_mps(nd,eps,
-     $           nmpole,cmpolesort,rmpolesort,mtermssort,mpolesort,
-     $           impolesort,localsort,
-     $           iaddr,rmlexp,lmptot,mptemp,mptemp2,lmptemp,
-     $           itree,ltree,ipointer,ndiv,nlevels,
-     $           nboxes,iper,boxsize,centers,isrcse,
-     $           rscales,laddr,nterms,ier)
-      implicit none
+       subroutine lfmm3dmain_mps(nd,eps,
+     $            nmpole,cmpolesort,rmpolesort,mtermssort,mpolesort,
+     $            impolesort,localsort,
+     $            iaddr,rmlexp,lmptot,mptemp,mptemp2,lmptemp,
+     $            itree,ltree,ipointer,ndiv,nlevels,
+     $            nboxes,iper,boxsize,centers,isrcse,
+     $            rscales,laddr,nterms,ier)
+       implicit none
 
-      integer nd,ndiv,nlevels
-      integer ier
-      double precision eps
-      integer nmpole, mtermssort(nmpole)
-      integer ndiv,nlevels
+       integer nd,ndiv,nlevels
+       integer ier
+       double precision eps
+       integer nmpole, mtermssort(nmpole)
+       integer ndiv,nlevels
+       integer nboxes
 
-      double precision targsort(3,ntarg)
+       integer *8 iaddr(2,nboxes), lmptot
+       integer lmptemp
+       double precision rmlexp(lmptot)
+       double precision mptemp(lmptemp)
+       double precision mptemp2(lmptemp)
 
-      integer ifnear
+       double precision thresh
 
-      integer *8 iaddr(2,nboxes), lmptot
-      integer lmptemp
-      double precision rmlexp(lmptot)
-      double precision mptemp(lmptemp)
-      double precision mptemp2(lmptemp)
+       double precision timeinfo(6)
+       double precision centers(3,nboxes)
 
-      double precision thresh
-       
-      double precision timeinfo(6)
-      double precision centers(3,nboxes)
+       integer isep,iper
+       integer laddr(2,0:nlevels)
+       integer nterms(0:nlevels)
+       integer *8 ipointer(8),ltree
+       integer itree(ltree)
+       double precision rscales(0:nlevels)
+       double precision boxsize(0:nlevels)
+       integer isrcse(2,nboxes)
+       integer, allocatable :: nlist1(:),list1(:,:)
+       integer, allocatable :: nlist2(:),list2(:,:)
+       integer, allocatable :: nlist3(:),list3(:,:)
+       integer, allocatable :: nlist4(:),list4(:,:)
 
-      integer isep,iper
-      integer laddr(2,0:nlevels)
-      integer nterms(0:nlevels)
-      integer *8 ipointer(8),ltree
-      integer itree(ltree)
-      integer nboxes
-      double precision rscales(0:nlevels)
-      double precision boxsize(0:nlevels)
-      integer isrcse(2,nboxes),itargse(2,nboxes)
-      integer, allocatable :: nlist1(:),list1(:,:)
-      integer, allocatable :: nlist2(:),list2(:,:)
-      integer, allocatable :: nlist3(:),list3(:,:)
-      integer, allocatable :: nlist4(:),list4(:,:)
+       integer nuall,ndall,nnall,nsall,neall,nwall
+       integer nu1234,nd5678,nn1256,ns3478,ne1357,nw2468
+       integer nn12,nn56,ns34,ns78,ne13,ne57,nw24,nw68
+       integer ne1,ne3,ne5,ne7,nw2,nw4,nw6,nw8
 
-      integer nuall,ndall,nnall,nsall,neall,nwall
-      integer nu1234,nd5678,nn1256,ns3478,ne1357,nw2468
-      integer nn12,nn56,ns34,ns78,ne13,ne57,nw24,nw68
-      integer ne1,ne3,ne5,ne7,nw2,nw4,nw6,nw8
+       integer, allocatable :: uall(:,:),dall(:,:),nall(:,:)
+       integer, allocatable :: sall(:,:),eall(:,:),wall(:,:)
+       integer, allocatable :: u1234(:,:),d5678(:,:)
+       integer, allocatable :: n1256(:,:),s3478(:,:)
+       integer, allocatable :: e1357(:,:),w2468(:,:)
+       integer, allocatable :: n12(:,:),n56(:,:),s34(:,:),s78(:,:)
+       integer, allocatable :: e13(:,:),e57(:,:),w24(:,:),w68(:,:)
+       integer, allocatable :: e1(:,:),e3(:,:),e5(:,:),e7(:,:)
+       integer, allocatable :: w2(:,:),w4(:,:),w6(:,:),w8(:,:)
 
-      integer, allocatable :: uall(:,:),dall(:,:),nall(:,:)
-      integer, allocatable :: sall(:,:),eall(:,:),wall(:,:)
-      integer, allocatable :: u1234(:,:),d5678(:,:)
-      integer, allocatable :: n1256(:,:),s3478(:,:)
-      integer, allocatable :: e1357(:,:),w2468(:,:)
-      integer, allocatable :: n12(:,:),n56(:,:),s34(:,:),s78(:,:)
-      integer, allocatable :: e13(:,:),e57(:,:),w24(:,:),w68(:,:)
-      integer, allocatable :: e1(:,:),e3(:,:),e5(:,:),e7(:,:)
-      integer, allocatable :: w2(:,:),w4(:,:),w6(:,:),w8(:,:)
+c      temp variables
+       integer i,j,k,l,ii,jj,kk,ll,m,idim
+       integer ibox,jbox,ilev,npts,npts0
+       integer nchild
 
-c     temp variables
-      integer i,j,k,l,ii,jj,kk,ll,m,idim,igbox
-      integer ibox,jbox,ilev,npts,npts0,kbox,dir
-      integer nchild
+       integer istart,iend
+       integer jstart,jend
 
-      integer istart,iend,istarts,iends
-      integer istartt,iendt,istarte,iende
-      integer isstart,isend,jsstart,jsend
-      integer jstart,jend
+       integer ifprint
 
-      integer ifprint
+       double precision d,time1,time2,omp_get_wtime
 
-      double precision d,time1,time2,second,omp_get_wtime
-      double precision pottmp,fldtmp(3),hesstmp(3)
+c      PW variables
+       integer nlams, nmax, nthmax, nphmax, nmaxt
+       integer lca
+       double precision, allocatable :: carray(:,:), dc(:,:)
+       double precision, allocatable :: rdplus(:,:,:)
+       double precision, allocatable :: rdminus(:,:,:), rdsq3(:,:,:)
+       double precision, allocatable :: rdmsq3(:,:,:)
+       double precision, allocatable :: rlams(:),whts(:)
 
-c     PW variables
-      integer nexpmax, nlams, nmax, nthmax, nphmax,nmax2,nmaxt
-      integer lca
-      double precision, allocatable :: carray(:,:), dc(:,:)
-      double precision, allocatable :: cs(:,:),fact(:),rdplus(:,:,:)
-      double precision, allocatable :: rdminus(:,:,:), rdsq3(:,:,:)
-      double precision, allocatable :: rdmsq3(:,:,:)
-  
-      double precision, allocatable :: rlams(:),whts(:)
+       double precision, allocatable :: rlsc(:,:,:)
+       integer, allocatable :: nfourier(:), nphysical(:)
+       integer nexptot, nexptotp
+       double complex, allocatable :: xshift(:,:)
+       double complex, allocatable :: yshift(:,:)
+       double precision, allocatable :: zshift(:,:)
 
-      double precision, allocatable :: rlsc(:,:,:)
-      integer, allocatable :: nfourier(:), nphysical(:)
-      integer nexptot, nexptotp
-      double complex, allocatable :: xshift(:,:)
-      double complex, allocatable :: yshift(:,:)
-      double precision, allocatable :: zshift(:,:)
+       double complex, allocatable :: fexpe(:),fexpo(:),fexpback(:)
+       double complex, allocatable :: mexp(:,:,:,:)
+       double complex, allocatable :: mexpf1(:,:,:),mexpf2(:,:,:)
+       double complex, allocatable :: mexpp1(:,:,:),mexpp2(:,:,:)
+       double complex, allocatable :: mexppall(:,:,:,:)
 
-      double complex, allocatable :: fexpe(:),fexpo(:),fexpback(:)
-      double complex, allocatable :: mexp(:,:,:,:)
-      double complex, allocatable :: mexpf1(:,:,:),mexpf2(:,:,:)
-      double complex, allocatable ::
-     1       mexpp1(:,:,:),mexpp2(:,:,:),mexppall(:,:,:,:)
+       double complex, allocatable :: tmp(:,:,:,:)
+       double precision, allocatable :: mptmp(:,:)
 
-      double complex, allocatable :: tmp(:,:,:,:)
-      double precision, allocatable :: mptmp(:,:)
+       double precision rtmp
 
-      double precision sourcetmp(3)
-      double complex chargetmp
+       integer nlege, lw7, lused7
+       double precision wlege(40000)
 
-      integer ix,iy,iz,ictr
-      double precision rtmp
-      double complex zmul
+       integer mnlist1, mnlist2,mnlist3,mnlist4,mnbors
+       integer nn
+       double precision, allocatable :: rscpow(:)
+       double precision pi
 
-      integer nlege, lw7, lused7, itype
-      double precision wlege(40000)
-      integer nterms_eval(4,0:nlevels)
+c      list 3 variables
+       double complex, allocatable :: iboxlexp(:,:,:)
+       double precision, allocatable :: iboxsubcenters(:,:,:)
+       double precision, allocatable :: iboxpot(:,:,:)
+       double precision, allocatable :: iboxgrad(:,:,:,:)
+       double precision, allocatable :: iboxhess(:,:,:,:)
+       double precision, allocatable :: iboxsrc(:,:,:)
+       integer, allocatable :: iboxsrcind(:,:)
+       integer, allocatable :: iboxfl(:,:,:)
+c      end of list 3 variables
 
-      integer mnlist1, mnlist2,mnlist3,mnlist4,mnbors
-      double complex eye, ztmp
-      double precision alphaj
-      integer ctr,nn,iptr1,iptr2
-      double precision, allocatable :: rscpow(:)
-      double precision pi,errtmp
-      double complex ima
-
-      double precision ctmp(3)
-
-c     list 3 variables
-      double complex, allocatable :: iboxlexp(:,:,:)
-      double precision, allocatable :: iboxsubcenters(:,:,:)
-      double precision, allocatable :: iboxpot(:,:,:)
-      double precision, allocatable :: iboxgrad(:,:,:,:)
-      double precision, allocatable :: iboxhess(:,:,:,:)
-      double precision, allocatable :: iboxsrc(:,:,:)
-      integer, allocatable :: iboxsrcind(:,:)
-      integer, allocatable :: iboxfl(:,:,:)
-c     end of list 3 variables
-c     list 4 variables
-      integer cntlist4
-      integer, allocatable :: list4ct(:),ilist4(:)
-      double complex, allocatable :: gboxmexp(:,:,:)
-      double complex, allocatable :: gboxwexp(:,:,:,:,:)
-      double complex, allocatable :: pgboxwexp(:,:,:,:)
-      double precision, allocatable :: gboxsubcenters(:,:,:)
-      double precision, allocatable :: gboxsort(:,:,:)
-      integer, allocatable :: gboxind(:,:)
-      integer, allocatable :: gboxisort(:,:)
-      integer, allocatable :: gboxisort_tmp(:,:)
-      integer, allocatable :: gboxfl(:,:,:)
-      double precision, allocatable :: gboxcgsort(:,:,:)
-      double precision, allocatable :: gboxdpsort(:,:,:,:)
-c     end of list 4 variables
-
-c
-c   hessian variables
-c
-      double precision, allocatable :: scarray(:,:)
-
-      integer *8 bigint
-      integer iert
-      data ima/(0.0d0,1.0d0)/
-
-      integer nthd,ithd
-      integer omp_get_max_threads,omp_get_thread_num
-      nthd = 1
-C$    nthd=omp_get_max_threads()
-
-      pi = 4.0d0*atan(1.0d0)
-
-      thresh = 2.0d0**(-51)*boxsize(0)
+c      list 4 variables
+       integer cntlist4
+       integer, allocatable :: list4ct(:),ilist4(:)
+       double complex, allocatable :: gboxmexp(:,:,:)
+       double complex, allocatable :: gboxwexp(:,:,:,:,:)
+       double complex, allocatable :: pgboxwexp(:,:,:,:)
+       double precision, allocatable :: gboxsubcenters(:,:,:)
+       integer, allocatable :: gboxind(:,:)
+       integer, allocatable :: gboxisort(:,:)
+       integer, allocatable :: gboxisort_tmp(:,:)
+       integer, allocatable :: gboxfl(:,:,:)
+c      end of list 4 variables
 
 
-c     ifprint is an internal information printing flag. 
-c     Suppressed if ifprint=0.
-c     Prints timing breakdown and other things if ifprint=1.
-c     Prints timing breakdown, list information, 
-c     and other things if ifprint=2.
+       integer *8 bigint
+       integer iert
+
+       integer nthd,ithd
+       integer omp_get_max_threads,omp_get_thread_num
+       nthd = 1
+C$     nthd=omp_get_max_threads()
+
+       pi = 4.0d0*atan(1.0d0)
+       thresh = 2.0d0**(-51)*boxsize(0)
+
+
+c      ifprint is an internal information printing flag.
+c      Suppressed if ifprint=0.
+c      Prints timing breakdown and other things if ifprint=1.
+c      Prints timing breakdown, list information,
+c      and other things if ifprint=2.
 c       
-      ifprint=0
+       ifprint=1
       
 c
-c   initialize various tree lists
+c      initialize various tree lists
 c
-      mnlist1 = 0
-      mnlist2 = 0
-      mnlist3 = 0
-      mnlist4 = 0
-      mnbors = 27
+       mnlist1 = 0
+       mnlist2 = 0
+       mnlist3 = 0
+       mnlist4 = 0
+       mnbors = 27
 
-      isep = 1
+       isep = 1
       
-      call computemnlists(nlevels,nboxes,itree(ipointer(1)),boxsize,
-     1  centers,itree(ipointer(3)),itree(ipointer(4)),
-     2  itree(ipointer(5)),isep,itree(ipointer(6)),mnbors,
-     2  itree(ipointer(7)),iper,mnlist1,mnlist2,mnlist3,mnlist4)
+       call computemnlists(nlevels,nboxes,itree(ipointer(1)),boxsize,
+     1      centers,itree(ipointer(3)),itree(ipointer(4)),
+     2      itree(ipointer(5)),isep,itree(ipointer(6)),mnbors,
+     2      itree(ipointer(7)),iper,mnlist1,mnlist2,mnlist3,mnlist4)
       
-      allocate(list1(mnlist1,nboxes),nlist1(nboxes))
-      allocate(list2(mnlist2,nboxes),nlist2(nboxes))
-      allocate(list3(mnlist3,nboxes),nlist3(nboxes))
-      allocate(list4(mnlist4,nboxes),nlist4(nboxes))
+       allocate(list1(mnlist1,nboxes),nlist1(nboxes))
+       allocate(list2(mnlist2,nboxes),nlist2(nboxes))
+       allocate(list3(mnlist3,nboxes),nlist3(nboxes))
+       allocate(list4(mnlist4,nboxes),nlist4(nboxes))
 
-      call computelists(nlevels,nboxes,itree(ipointer(1)),boxsize,
-     1  centers,itree(ipointer(3)),itree(ipointer(4)),
-     2  itree(ipointer(5)),isep,itree(ipointer(6)),mnbors,
-     3  itree(ipointer(7)),iper,nlist1,mnlist1,list1,nlist2,
-     4  mnlist2,list2,nlist3,mnlist3,list3,
-     4  nlist4,mnlist4,list4)
+       call computelists(nlevels,nboxes,itree(ipointer(1)),boxsize,
+     1      centers,itree(ipointer(3)),itree(ipointer(4)),
+     2      itree(ipointer(5)),isep,itree(ipointer(6)),mnbors,
+     3      itree(ipointer(7)),iper,nlist1,mnlist1,list1,nlist2,
+     4      mnlist2,list2,nlist3,mnlist3,list3,
+     4      nlist4,mnlist4,list4)
       
 
 c     Initialize routines for plane wave mp loc translation
@@ -497,16 +470,6 @@ c     required for the exponential representation
 
 c     Generate powers of lambda for the exponential basis
       call rlscini(rlsc,nlams,rlams,nmax)
-
-c
-c
-c
-      nn = 10*(nmax+2)**2
-      allocate(scarray(nn,0:nlevels))
-
-      do ilev=0,nlevels
-        call l3dtaevalhessdini(nterms(ilev),scarray(1,ilev))
-      enddo
 
 c     Compute total number of plane waves
       nexptotp = 0
@@ -568,29 +531,6 @@ c     Precompute table of exponentials for mapping from
 c     fourier to physical domain
       call mkfexp(nlams,nfourier,nphysical,fexpe,fexpo,fexpback)
       
-c
-cc    compute array of factorials
-
-     
-      nmax2 = 2*nmax
-      allocate(fact(0:nmax2),cs(0:nmax,-nmax:nmax))
-      
-      d = 1
-      fact(0) = d
-      do i=1,nmax2
-        d=d*sqrt(i+0.0d0)
-        fact(i) = d
-      enddo
-
-      cs(0,0) = 1.0d0
-      do l=1,nmax
-        do m=0,l
-          cs(l,m) = ((-1)**l)/(fact(l-m)*fact(l+m))
-          cs(l,-m) = cs(l,m)
-        enddo
-      enddo
-
-
       
       if(ifprint.ge.1) 
      1   call prin2('end of generating plane wave info*',i,0)
@@ -662,10 +602,7 @@ C$OMP END PARALLEL DO
       allocate(gboxind(nmaxt,nthd))
       allocate(gboxisort(nmaxt,nthd))
       allocate(gboxisort_tmp(nmaxt,nthd))
-      allocate(gboxsort(3,nmaxt,nthd))
       allocate(gboxwexp(nd,nexptotp,6,8,nthd))
-      allocate(gboxcgsort(nd,nmaxt,nthd))
-      allocate(gboxdpsort(nd,3,nmaxt,nthd))
 
 c   note gboxmexp is an array not scalar
       pgboxwexp=0d0
@@ -804,8 +741,8 @@ c
          enddo
 C$OMP END PARALLEL DO
       enddo
-      deallocate(gboxfl,gboxsubcenters,gboxwexp,gboxcgsort)
-      deallocate(gboxdpsort,gboxind,gboxsort)
+      deallocate(gboxfl,gboxsubcenters,gboxwexp)
+      deallocate(gboxind)
 
       call cpu_time(time2)
 C$    time2=omp_get_wtime()
@@ -939,11 +876,6 @@ C$OMP$REDUCTION(max:nmaxt)
           iend = isrcse(2,ibox)
           npts = iend-istart+1
           if(npts.gt.nmaxt) nmaxt = npts
-
-          istart = itargse(1,ibox)
-          iend = itargse(2,ibox)
-          npts = iend - istart + 1
-          if(npts.gt.nmaxt) nmaxt = npts
         endif
       enddo
 C$OMP END PARALLEL DO
@@ -987,6 +919,7 @@ c
                 call mpoletoexp(nd,tmp(1,0,-nmax,ithd),nterms(ilev),
      1              nlams,nfourier,
      2              nexptot,mexpf1(1,1,ithd),mexpf2(1,1,ithd),rlsc)
+
 
                 call ftophys(nd,mexpf1(1,1,ithd),nlams,rlams,nfourier,
      1          nphysical,nthmax,mexp(1,1,ibox,1),fexpe,fexpo)
@@ -1057,7 +990,7 @@ C$OMP$PRIVATE(nn1256,ns3478,ne1357,nw2468)
 C$OMP$PRIVATE(nn12,nn56,ns34,ns78,ne13,ne57)
 C$OMP$PRIVATE(nw24,nw68,ne1,ne3,ne5,ne7)
 C$OMP$PRIVATE(nw2,nw4,nw6,nw8)
-C$OMP$PRIVATE(npts0,ctmp,jstart,jend,i)
+C$OMP$PRIVATE(npts0,jstart,jend,i)
 C$OMP$PRIVATE(ithd)
          do ibox = laddr(1,ilev-1),laddr(2,ilev-1)
            ithd = 0
@@ -1193,7 +1126,6 @@ C$         ithd=omp_get_thread_num()
      6             mexppall(1,1,1,ithd),mexppall(1,1,2,ithd),rdminus,
      7             xshift,yshift,zshift,fexpback,rlsc,rscpow)
 
-              if(ifpgh.eq.1) then
                 istart = isrcse(1,ibox) 
                 iend = isrcse(2,ibox) 
                 npts = iend-istart+1
@@ -1216,13 +1148,13 @@ C$         ithd=omp_get_thread_num()
      1                     iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
      2                     nterms(ilev),iboxsrc(1,jstart,ithd),npts0,
      3                     iboxpot(1,jstart,ithd),wlege,nlege)
+                        call l3dmoloc
                       endif
                     endif
                   enddo
                   call dreorderi(nd,npts,iboxpot(1,1,ithd),
      1               pot(1,istart),iboxsrcind(1,ithd))
                 endif
-              endif
 
             endif
          enddo
@@ -1280,13 +1212,31 @@ C$        time2=omp_get_wtime()
       if(ifprint.ge.1)
      $    call prinf('=== step 5 (LOC to CEN) ===*',i,0)
 
-c     ... step 6, evaluate all local expansions
+c     ... step 5, shift leaf box loc exp to mpole center
 c
-
       call cpu_time(time1)
 C$        time1=omp_get_wtime()
-C
 
+      do ilev = 0,nlevels
+C$OMP PARALLEL DO DEFAULT(SHARED)
+C$OMP$PRIVATE(ibox,istart,iend,npts0,i,jbox,jstart,jend,npts)
+C$OMP$SCHEDULE(DYNAMIC)
+        do ibox = laddr(1,ilev),laddr(2,ilev)
+          nchild = itree(ipointer(4)+ibox-1)
+          if(nchild.eq.0) then
+            istart = isrcse(1,ibox)
+            iend = isrcse(2,ibox)
+            npts = iend - istart + 1
+            do i = istart, iend
+              call l3dlocloc(nd, rscales(ilev),
+     1             centers(1,ibox), rmlexp(iaddr(2, ibox)),
+     2             nterms(ilev), rmpolesort(i), cmpolesort(1,i),
+     3             localsort(impolesort(i)), mtermssort(i),
+     4             dc,lca)
+            end do
+          end if
+        end do
+      end do
     
       call cpu_time(time2)
 C$        time2=omp_get_wtime()
@@ -1304,13 +1254,13 @@ c         due to sources in list1
 
       do ilev=0,nlevels
 C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istarts,iends,npts0,i,jbox,jstart,jend,npts)
-C$OMP$SCHEDULE(DYNAMIC)      
+C$OMP$PRIVATE(ibox,istart,iend,npts0,i,jbox,jstart,jend,npts)
+C$OMP$SCHEDULE(DYNAMIC)
             do ibox = laddr(1,ilev),laddr(2,ilev)
-              istarts = isrcse(1,ibox) 
-              iends = isrcse(2,ibox)
-              npts0 = iends-istarts+1
-              do iloc = istarts,iends
+              istart = isrcse(1,ibox)
+              iend = isrcse(2,ibox)
+              npts0 = iend-istart+1
+              do iloc = istart,iend
                 do i = 1,nlist1(ibox)
                   jbox = list1(i,ibox)
                   jstart = isrcse(1,jbox)
