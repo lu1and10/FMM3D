@@ -416,197 +416,191 @@ c
      4      nlist4,mnlist4,list4)
       
 
-c     Initialize routines for plane wave mp loc translation
+c      Initialize routines for plane wave mp loc translation
  
-      if(isep.eq.1) then
+       if(isep.eq.1) then
          if(eps.ge.0.5d-2) nlams = 12
          if(eps.lt.0.5d-2.and.eps.ge.0.5d-3) nlams = 12
          if(eps.lt.0.5d-3.and.eps.ge.0.5d-6) nlams = 20
          if(eps.lt.0.5d-6.and.eps.ge.0.5d-9) nlams = 29
          if(eps.lt.0.5d-9) nlams = 37
-      endif
-      if(isep.eq.2) then
+       endif
+       if(isep.eq.2) then
          if(eps.ge.0.5d-3) nlams = 9
          if(eps.lt.0.5d-3.and.eps.ge.0.5d-6) nlams = 15
          if(eps.lt.0.5d-6.and.eps.ge.0.5d-9) nlams = 22
          if(eps.lt.0.5d-9) nlams = 29
-      endif
+       endif
 
-      allocate(rlams(nlams),whts(nlams))
-      allocate(nphysical(nlams),nfourier(nlams))
+       allocate(rlams(nlams),whts(nlams))
+       allocate(nphysical(nlams),nfourier(nlams))
 
-      nmax = 0
-      do i=0,nlevels
+       nmax = 0
+       do i=0,nlevels
          if(nmax.lt.nterms(i)) nmax = nterms(i)
-      enddo
-      allocate(rscpow(0:nmax))
-      allocate(carray(4*nmax+1,4*nmax+1))
-      allocate(dc(0:4*nmax,0:4*nmax))
-      allocate(rdplus(0:nmax,0:nmax,-nmax:nmax))
-      allocate(rdminus(0:nmax,0:nmax,-nmax:nmax))
-      allocate(rdsq3(0:nmax,0:nmax,-nmax:nmax))
-      allocate(rdmsq3(0:nmax,0:nmax,-nmax:nmax))
-      allocate(rlsc(0:nmax,0:nmax,nlams))
+       enddo
+       allocate(rscpow(0:nmax))
+       allocate(carray(4*nmax+1,4*nmax+1))
+       allocate(dc(0:4*nmax,0:4*nmax))
+       allocate(rdplus(0:nmax,0:nmax,-nmax:nmax))
+       allocate(rdminus(0:nmax,0:nmax,-nmax:nmax))
+       allocate(rdsq3(0:nmax,0:nmax,-nmax:nmax))
+       allocate(rdmsq3(0:nmax,0:nmax,-nmax:nmax))
+       allocate(rlsc(0:nmax,0:nmax,nlams))
 
+c      generate rotation matrices and carray
+       call getpwrotmat(nmax,carray,rdplus,rdminus,rdsq3,rdmsq3,dc)
 
-c     generate rotation matrices and carray
-      call getpwrotmat(nmax,carray,rdplus,rdminus,rdsq3,rdmsq3,dc)
+c      generate rlams and weights (these are the nodes
+c      and weights for the lambda integral)
 
+       call vwts(rlams,whts,nlams)
 
-c     generate rlams and weights (these are the nodes
-c     and weights for the lambda integral)
+c      generate the number of fourier modes required to represent the
+c      moment function in fourier space
 
-      call vwts(rlams,whts,nlams)
-
-
-c     generate the number of fourier modes required to represent the
-c     moment function in fourier space
-
-      call numthetahalf(nfourier,nlams)
+       call numthetahalf(nfourier,nlams)
  
-c     generate the number of fourier modes in physical space
-c     required for the exponential representation
-      call numthetafour(nphysical,nlams)
+c      generate the number of fourier modes in physical space
+c      required for the exponential representation
+       call numthetafour(nphysical,nlams)
 
-c     Generate powers of lambda for the exponential basis
-      call rlscini(rlsc,nlams,rlams,nmax)
+c      Generate powers of lambda for the exponential basis
+       call rlscini(rlsc,nlams,rlams,nmax)
 
-c     Compute total number of plane waves
-      nexptotp = 0
-      nexptot = 0
-      nthmax = 0
-      nphmax = 0
-      nn = 0
-      do i=1,nlams
+c      Compute total number of plane waves
+       nexptotp = 0
+       nexptot = 0
+       nthmax = 0
+       nphmax = 0
+       nn = 0
+       do i=1,nlams
          nexptot = nexptot + nfourier(i)
          nexptotp = nexptotp + nphysical(i)
          if(nfourier(i).gt.nthmax) nthmax = nfourier(i)
          if(nphysical(i).gt.nphmax) nphmax = nphysical(i)
          nn = nn + nphysical(i)*nfourier(i)
-      enddo
+       enddo
 
-      allocate(fexpe(nn),fexpo(nn),fexpback(nn))
-      allocate(tmp(nd,0:nmax,-nmax:nmax,nthd))
-      allocate(mptmp(lmptemp,nthd))
+       allocate(fexpe(nn),fexpo(nn),fexpback(nn))
+       allocate(tmp(nd,0:nmax,-nmax:nmax,nthd))
+       allocate(mptmp(lmptemp,nthd))
 
-      allocate(xshift(-5:5,nexptotp))
-      allocate(yshift(-5:5,nexptotp))
-      allocate(zshift(5,nexptotp))
+       allocate(xshift(-5:5,nexptotp))
+       allocate(yshift(-5:5,nexptotp))
+       allocate(zshift(5,nexptotp))
 
-      allocate(mexpf1(nd,nexptot,nthd),mexpf2(nd,nexptot,nthd),
-     1   mexpp1(nd,nexptotp,nthd))
-      allocate(mexpp2(nd,nexptotp,nthd),mexppall(nd,nexptotp,16,nthd))
+       allocate(mexpf1(nd,nexptot,nthd),mexpf2(nd,nexptot,nthd),
+     1          mexpp1(nd,nexptotp,nthd))
+       allocate(mexpp2(nd,nexptotp,nthd),mexppall(nd,nexptotp,16,nthd))
 
 c
-cc      NOTE: there can be some memory savings here
+cc     NOTE: there can be some memory savings here
 c
-      bigint = 0
-      bigint = nboxes
-      bigint = bigint*6
-      bigint = bigint*nexptotp*nd
+       bigint = 0
+       bigint = nboxes
+       bigint = bigint*6
+       bigint = bigint*nexptotp*nd
 
-      if(ifprint.ge.1) print *, "mexp memory=",bigint/1.0d9
+       if(ifprint.ge.1) print *, "mexp memory=",bigint/1.0d9
 
-      allocate(mexp(nd,nexptotp,nboxes,6),stat=iert)
-      if(iert.ne.0) then
-        print *, "Cannot allocate pw expansion workspace"
-        print *, "bigint=", bigint
-        ier = 8
-        return
-      endif
+       allocate(mexp(nd,nexptotp,nboxes,6),stat=iert)
+       if(iert.ne.0) then
+         print *, "Cannot allocate pw expansion workspace"
+         print *, "bigint=", bigint
+         ier = 8
+         return
+       endif
 
-      allocate(list4ct(nboxes))
-      allocate(ilist4(nboxes))
-      do i=1,nboxes
-        list4ct(i)=0
-        ilist4(i)=0
-      enddo
-      cntlist4=0
+       allocate(list4ct(nboxes))
+       allocate(ilist4(nboxes))
+       do i=1,nboxes
+         list4ct(i)=0
+         ilist4(i)=0
+       enddo
+       cntlist4=0
 
-c     Precompute table for shifting exponential coefficients in 
-c     physical domain
-      call mkexps(rlams,nlams,nphysical,nexptotp,xshift,yshift,zshift)
+c      Precompute table for shifting exponential coefficients in 
+c      physical domain
+       call mkexps(rlams,nlams,nphysical,nexptotp,xshift,yshift,zshift)
 
-c     Precompute table of exponentials for mapping from
-c     fourier to physical domain
-      call mkfexp(nlams,nfourier,nphysical,fexpe,fexpo,fexpback)
+c      Precompute table of exponentials for mapping from
+c      fourier to physical domain
+       call mkfexp(nlams,nfourier,nphysical,fexpe,fexpo,fexpback)
       
-      
-      if(ifprint.ge.1) 
+       if(ifprint.ge.1) 
      1   call prin2('end of generating plane wave info*',i,0)
 
-c       
-      do i=1,6
-        timeinfo(i)=0
-      enddo
+c      set timing to 0
+       do i=1,6
+         timeinfo(i)=0
+       enddo
 
 c
-c       ... set all multipole and local expansions to zero
+c      set all multipole and local expansions to zero
 c
 
-      do ilev = 0,nlevels
+       do ilev = 0,nlevels
 C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(ibox)
-        do ibox=laddr(1,ilev),laddr(2,ilev)
-          call mpzero(nd,rmlexp(iaddr(1,ibox)),nterms(ilev))
-          call mpzero(nd,rmlexp(iaddr(2,ibox)),nterms(ilev))
-        enddo
+         do ibox=laddr(1,ilev),laddr(2,ilev)
+           call mpzero(nd,rmlexp(iaddr(1,ibox)),nterms(ilev))
+           call mpzero(nd,rmlexp(iaddr(2,ibox)),nterms(ilev))
+         enddo
 C$OMP END PARALLEL DO        
-      enddo
+       enddo
 
 
-c    initialize legendre function evaluation routines
-      nlege = 100
-      lw7 = 40000
-      call ylgndrfwini(nlege,wlege,lw7,lused7)
+c      initialize legendre function evaluation routines
+       nlege = 100
+       lw7 = 40000
+       call ylgndrfwini(nlege,wlege,lw7,lused7)
 
 c
-c     count number of boxes are in list4
-      lca = 4*nmax
-      if(ifprint.ge.1)
+c      count number of boxes are in list4
+       lca = 4*nmax
+       if(ifprint.ge.1)
      $   call prinf('=== STEP 0 list4===*',i,0)
-      call cpu_time(time1)
-C$    time1=omp_get_wtime()
-      do ilev=1,nlevels-1
+       call cpu_time(time1)
+C$     time1=omp_get_wtime()
+       do ilev=1,nlevels-1
          do ibox=laddr(1,ilev),laddr(2,ilev)
-            if(nlist3(ibox).gt.0) then
-              cntlist4=cntlist4+1
-              list4ct(ibox)=cntlist4
-              ilist4(cntlist4)=ibox
-            endif
+           if(nlist3(ibox).gt.0) then
+             cntlist4=cntlist4+1
+             list4ct(ibox)=cntlist4
+             ilist4(cntlist4)=ibox
+           endif
          enddo
-      enddo
-      if(ifprint.ge.1) print *,"nboxes:",nboxes,"cntlist4:",cntlist4
-      allocate(pgboxwexp(nd,nexptotp,cntlist4,6))
-      allocate(gboxmexp(nd*(nterms(nlevels)+1)*
+       enddo
+       if(ifprint.ge.1) print *,"nboxes:",nboxes,"cntlist4:",cntlist4
+       allocate(pgboxwexp(nd,nexptotp,cntlist4,6))
+       allocate(gboxmexp(nd*(nterms(nlevels)+1)*
      1                   (2*nterms(nlevels)+1),8,cntlist4))
 
+       allocate(gboxsubcenters(3,8,nthd))
+       allocate(gboxfl(2,8,nthd))
 
-
-      allocate(gboxsubcenters(3,8,nthd))
-      allocate(gboxfl(2,8,nthd))
-
-      nmaxt = 0
+       nmaxt = 0
 C$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(ibox,istart,iend,npts)
 C$OMP$REDUCTION(max:nmaxt)
-      do ibox=1,nboxes
-        if(list4ct(ibox).gt.0) then
-          istart = isrcse(1,ibox)
-          iend = isrcse(2,ibox)
-          npts = iend-istart+1
-          if(npts.gt.nmaxt) nmaxt = npts
-        endif
-      enddo
+       do ibox=1,nboxes
+         if(list4ct(ibox).gt.0) then
+           istart = isrcse(1,ibox)
+           iend = isrcse(2,ibox)
+           npts = iend-istart+1
+           if(npts.gt.nmaxt) nmaxt = npts
+         endif
+       enddo
 C$OMP END PARALLEL DO
 
-      allocate(gboxind(nmaxt,nthd))
-      allocate(gboxisort(nmaxt,nthd))
-      allocate(gboxisort_tmp(nmaxt,nthd))
-      allocate(gboxwexp(nd,nexptotp,6,8,nthd))
+       allocate(gboxind(nmaxt,nthd))
+       allocate(gboxisort(nmaxt,nthd))
+       allocate(gboxisort_tmp(nmaxt,nthd))
+       allocate(gboxwexp(nd,nexptotp,6,8,nthd))
 
-c   note gboxmexp is an array not scalar
-      pgboxwexp=0d0
-      gboxmexp=0d0
+c      note gboxmexp is an array not scalar
+       pgboxwexp=0d0
+       gboxmexp=0d0
 
 c     form mexp for all list4 type box at first ghost box center
       do ilev=1,nlevels-1
@@ -837,7 +831,6 @@ C$        time1=omp_get_wtime()
 c
 cc     zero out mexp
 c 
-
 C$OMP PARALLEL DO DEFAULT(SHARED)
 C$OMP$PRIVATE(i,j,k,idim)
       do k=1,6
