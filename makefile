@@ -109,7 +109,7 @@ HOBJS = $(HELM)/h3dcommon.o $(HELM)/h3dterms.o $(HELM)/h3dtrans.o \
 # Laplace objects
 LAP = src/Laplace
 LOBJS = $(LAP)/lwtsexp_sep1.o $(LAP)/l3dterms.o $(LAP)/l3dtrans.o \
-	$(LAP)/laprouts3d.o $(LAP)/lfmm3d.o $(LAP)/lfmm3dwrap.o \
+	$(LAP)/laprouts3d.o $(LAP)/lfmm3d.o $(LAP)/lfmm3d_mps.o $(LAP)/lfmm3dwrap.o \
 	$(LAP)/lfmm3dwrap_legacy.o $(LAP)/lfmm3dwrap_vec.o $(LAP)/lwtsexp_sep2.o \
 	$(LAP)/lpwrouts.o $(LAP)/lfmm3d_ndiv.o
 

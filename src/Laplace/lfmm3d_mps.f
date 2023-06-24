@@ -1,5 +1,5 @@
 c
-       subroutine lfmm3d(nd, eps ,nmpole, cmpole, rmpole, mterms,
+       subroutine lfmm3d_mps(nd, eps ,nmpole, cmpole, rmpole, mterms,
      $                   mpole, impole, local, ier)
 c
        implicit none
@@ -28,7 +28,7 @@ cc     temporary sorted arrays
 c
        integer :: lmpole, mt, ilen
        integer, allocatable :: mtermssort(:), impolesort(:)
-       double precision, allocatable :: cmpolesort(:)
+       double precision, allocatable :: cmpolesort(:,:)
        double precision, allocatable :: rmpolesort(:)
        double precision, allocatable :: mpolesort(:)
        double precision, allocatable :: localsort(:)
@@ -49,7 +49,7 @@ c
 c
 cc     other temporary variables
 c
-       integer i,iert,ifprint,ilev
+       integer i,iert,ifprint,ilev,ijk,j,l
        double precision time1,time2,omp_get_wtime
 
 c
@@ -165,7 +165,7 @@ c
          ijk = 1
          do j = 1, ilen
            do l = 1,nd
-             mpolesort(impolesort(i)+ijk-1)=mpole(impole(isrc(i)+ijk-1)
+             mpolesort(impolesort(i)+ijk-1)=mpole(impole(isrc(i))+ijk-1)
              ijk = ijk + 1
            enddo
          enddo
@@ -228,7 +228,7 @@ C$     time2=omp_get_wtime()
          ijk = 1
          do j = 1,ilen
            do l = 1,nd
-             local(impole(isrc(i)+ijk-1)=localsort(impolesort(i)+ijk-1)
+             local(impole(isrc(i))+ijk-1)=localsort(impolesort(i)+ijk-1)
              ijk = ijk+1
            enddo
          enddo
@@ -253,7 +253,9 @@ c
        integer ier
        double precision eps
        integer nmpole, mtermssort(nmpole)
-       integer ndiv,nlevels
+       double precision :: cmpolesort(3,nmpole), rmpolesort(nmpole)
+       double precision :: mpolesort(*),localsort(*)
+       integer :: impolesort(nmpole)
        integer nboxes
 
        integer *8 iaddr(2,nboxes), lmptot
@@ -296,7 +298,7 @@ c
        integer, allocatable :: w2(:,:),w4(:,:),w6(:,:),w8(:,:)
 
 c      temp variables
-       integer i,j,k,l,ii,jj,kk,ll,m,idim
+       integer i,j,k,l,ii,jj,kk,ll,m,idim,iloc
        integer ibox,jbox,ilev,npts,npts0
        integer nchild
 
@@ -345,11 +347,9 @@ c      PW variables
 c      list 3 variables
        double complex, allocatable :: iboxlexp(:,:,:)
        double precision, allocatable :: iboxsubcenters(:,:,:)
-       double precision, allocatable :: iboxpot(:,:,:)
-       double precision, allocatable :: iboxgrad(:,:,:,:)
-       double precision, allocatable :: iboxhess(:,:,:,:)
-       double precision, allocatable :: iboxsrc(:,:,:)
        integer, allocatable :: iboxsrcind(:,:)
+       integer, allocatable :: iboxisort(:,:)
+       integer, allocatable :: iboxisort_tmp(:,:)
        integer, allocatable :: iboxfl(:,:,:)
 c      end of list 3 variables
 
@@ -634,7 +634,7 @@ C$          ithd=omp_get_thread_num()
                 enddo
 
                 call ireordef(1,npts,gboxisort_tmp(1,ithd),
-     1               gboxisort(1,ithd),gboxind(1,ithd)
+     1               gboxisort(1,ithd),gboxind(1,ithd))
 
                 do i=1,8
                   if(gboxfl(1,i,ithd).gt.0) then
@@ -737,6 +737,9 @@ C$OMP END PARALLEL DO
        enddo
        deallocate(gboxfl,gboxsubcenters,gboxwexp)
        deallocate(gboxind)
+       deallocate(gboxisort_tmp)
+       deallocate(gboxisort)
+       deallocate(gboxmexp)
 
        call cpu_time(time2)
 C$     time2=omp_get_wtime()
@@ -850,7 +853,7 @@ c      init uall,dall,...,etc arrays
        allocate(iboxsubcenters(3,8,nthd))
        allocate(iboxfl(2,8,nthd))
 c
-c      figure out allocations needed for iboxsrc,iboxsrcind,iboxpot
+c      figure out allocations needed for iboxsrcind
 c      and so on
 c
        nmaxt = 0
@@ -867,10 +870,8 @@ C$OMP$REDUCTION(max:nmaxt)
 C$OMP END PARALLEL DO
 
        allocate(iboxsrcind(nmaxt,nthd))
-       allocate(iboxsrc(3,nmaxt,nthd))
-       allocate(iboxpot(nd,nmaxt,nthd))
-       allocate(iboxgrad(nd,3,nmaxt,nthd))
-       allocate(iboxhess(nd,6,nmaxt,nthd))
+       allocate(iboxisort(nmaxt,nthd))
+       allocate(iboxisort_tmp(nmaxt,nthd))
 
        do ilev=2,nlevels
          allocate(iboxlexp(nd*(nterms(ilev)+1)*
@@ -1134,7 +1135,7 @@ C$         ithd=omp_get_thread_num()
                    do j = jstart,jend
                      k = iboxisort(k,ithd)
                      call l3dlocloc(nd,rscales(ilev),
-     1                    iboxsubcenters(1,ibox),iboxlexp(1,i,ithd),
+     1                    iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
      2                    nterms(ilev),
      3                    rmpolesort(k),cmpolesort(1,k),
      4                    localsort(impolesort(k)), mtermssort(k),
@@ -1146,11 +1147,12 @@ C$         ithd=omp_get_thread_num()
            endif
          enddo
 C$OMP END PARALLEL DO        
-         deallocate(iboxlexp
+         deallocate(iboxlexp)
        enddo
 
-       deallocate(iboxsrcind,iboxsrc,iboxpot,iboxgrad,iboxhess)
+       deallocate(iboxsrcind,iboxisort,iboxisort_tmp)
        deallocate(iboxsubcenters,iboxfl)
+       deallocate(pgboxwexp)
        deallocate(uall,dall,nall,sall,eall,wall)
        deallocate(u1234,d5678,n1256,s3478)
        deallocate(e1357,w2468,n12,n56,s34,s78)
