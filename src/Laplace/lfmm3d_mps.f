@@ -981,6 +981,7 @@ C$OMP$PRIVATE(ithd)
            ithd = 0
 C$         ithd=omp_get_thread_num()
            ithd = ithd + 1
+           npts = 0
 
            nchild = itree(ipointer(4)+ibox-1)
 
@@ -1124,7 +1125,7 @@ C$         ithd=omp_get_thread_num()
                  iboxisort_tmp(i-istart+1,ithd) = i
                enddo
 
-               call dreorderf(1,npts,iboxisort_tmp(1,ithd),
+               call ireorderf(1,npts,iboxisort_tmp(1,ithd),
      1              iboxisort(1,ithd),iboxsrcind(1,ithd))
 
                do i=1,8
