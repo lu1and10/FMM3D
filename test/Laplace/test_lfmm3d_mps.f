@@ -104,7 +104,7 @@ c      generate sources uniformly in the unit cube
 c      now form a multipole expansion at each center
        allocate(nterms(nc), impole(nc))
       
-       ntm = 39
+       call l3dterms(eps, ntm)
        ntot = 0
        do i = 1,nc
          nterms(i) = ntm

@@ -615,7 +615,7 @@ c      form mexp for all list4 type box at first ghost box center
          enddo
 
 C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,istart,iend,jbox,jstart,jend,npts,npts0,i)
+C$OMP$PRIVATE(ibox,istart,iend,jbox,jstart,jend,npts,npts0,i,j,k)
 C$OMP$PRIVATE(ithd)
          do ibox=laddr(1,ilev),laddr(2,ilev)
             ithd = 0
@@ -763,7 +763,7 @@ c       of each leaf-node box
 
        do ilev=2,nlevels
 C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,npts,istart,iend,nchild)
+C$OMP$PRIVATE(ibox,npts,istart,iend,nchild,i)
          do ibox=laddr(1,ilev),laddr(2,ilev)
            istart = isrcse(1,ibox)
            iend = isrcse(2,ibox)
@@ -977,7 +977,7 @@ C$OMP$PRIVATE(nn1256,ns3478,ne1357,nw2468)
 C$OMP$PRIVATE(nn12,nn56,ns34,ns78,ne13,ne57)
 C$OMP$PRIVATE(nw24,nw68,ne1,ne3,ne5,ne7)
 C$OMP$PRIVATE(nw2,nw4,nw6,nw8)
-C$OMP$PRIVATE(npts0,jstart,jend,i)
+C$OMP$PRIVATE(npts0,jstart,jend,i,j,k)
 C$OMP$PRIVATE(ithd)
          do ibox = laddr(1,ilev-1),laddr(2,ilev-1)
            ithd = 0
@@ -1209,7 +1209,7 @@ C$     time1=omp_get_wtime()
 
        do ilev = 0,nlevels
 C$OMP PARALLEL DO DEFAULT(SHARED)
-C$OMP$PRIVATE(ibox,istart,iend,npts0,i,jbox,jstart,jend,npts)
+C$OMP$PRIVATE(ibox,istart,iend,i,npts,nchild)
 C$OMP$SCHEDULE(DYNAMIC)
          do ibox = laddr(1,ilev),laddr(2,ilev)
            nchild = itree(ipointer(4)+ibox-1)
@@ -1244,7 +1244,8 @@ c      due to sources in list1
 
        do ilev=0,nlevels
 C$OMP PARALLEL DO DEFAULT(SHARED)     
-C$OMP$PRIVATE(ibox,istart,iend,npts0,i,jbox,jstart,jend,npts)
+C$OMP$PRIVATE(ibox,istart,iend,npts0,i,jbox,jstart,jend,npts,iloc)
+C$OMP$PRIVATE(j,d)
 C$OMP$SCHEDULE(DYNAMIC)
          do ibox = laddr(1,ilev),laddr(2,ilev)
            istart = isrcse(1,ibox)
