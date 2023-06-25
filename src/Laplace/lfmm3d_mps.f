@@ -1133,7 +1133,7 @@ C$         ithd=omp_get_thread_num()
                    jend=iboxfl(2,i,ithd)
                    npts0=jend-jstart+1
                    do j = jstart,jend
-                     k = iboxisort(k,ithd)
+                     k = iboxisort(j,ithd)
                      call l3dlocloc(nd,rscales(ilev),
      1                    iboxsubcenters(1,i,ithd),iboxlexp(1,i,ithd),
      2                    nterms(ilev),
