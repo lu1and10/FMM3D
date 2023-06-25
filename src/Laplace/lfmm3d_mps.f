@@ -190,6 +190,7 @@ c
        endif
 
        allocate(localsort(lmpole))
+       localsort = 0
 
 c      Memory allocation is complete.
 c      scaling factor for multipole and local expansions at all levels
@@ -207,6 +208,7 @@ C$     time2=omp_get_wtime()
 c     Call main fmm routine
 
        call cpu_time(time1)
+       ier = 0
 C$     time1=omp_get_wtime()
        call lfmm3dmain_mps(nd,eps,
      $      nmpole,cmpolesort,rmpolesort,mtermssort,mpolesort,
@@ -403,7 +405,7 @@ c
      1      centers,itree(ipointer(3)),itree(ipointer(4)),
      2      itree(ipointer(5)),isep,itree(ipointer(6)),mnbors,
      2      itree(ipointer(7)),iper,mnlist1,mnlist2,mnlist3,mnlist4)
-      
+
        allocate(list1(mnlist1,nboxes),nlist1(nboxes))
        allocate(list2(mnlist2,nboxes),nlist2(nboxes))
        allocate(list3(mnlist3,nboxes),nlist3(nboxes))

@@ -29,7 +29,7 @@ c      initialize printing routine
        nd = 3
       
       
-       n1 = 7
+       n1 = 11
        ns = n1**3
        nc = ns
       
@@ -104,7 +104,7 @@ c      generate sources uniformly in the unit cube
 c      now form a multipole expansion at each center
        allocate(nterms(nc), impole(nc))
       
-       ntm = 7
+       ntm = 39
        ntot = 0
        do i = 1,nc
          nterms(i) = ntm
