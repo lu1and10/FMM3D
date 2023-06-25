@@ -29,7 +29,7 @@ c      initialize printing routine
        nd = 3
       
       
-       n1 = 3
+       n1 = 7
        ns = n1**3
        nc = ns
       
@@ -120,7 +120,7 @@ c      now form a multipole expansion at each center
        end do
       
        
-       nlege = 100
+       nlege = 300
        lw = 5*(nlege+1)**2
        allocate( wlege(lw) )
       
@@ -128,12 +128,11 @@ c      now form a multipole expansion at each center
        call ylgndrfwini(nlege, wlege, lw, lused)
        call prinf('after ylgndrfwini, lused = *', lused, 1)
       
-       call zinitialize(nd*ntot, mpole)
+       call zinitialize(nd*ntot*2, mpole)
        
        ns1 = 1
        rscale = 1
        sc = shift
-       sc = 1
        if (sc .lt. 1) rscale = sc
       
        call prin2('rscale = *', rscale, 1)
@@ -154,6 +153,7 @@ c      do the direct calculation
        ifpgh = 1
        ntarg = 0
        ifpghtarg = 0
+       ier = 0
        call lfmm3d(nd, eps, ns, source, ifcharge,
      1      charge, ifdipole, dipvec, iper, ifpgh, pot, grad, hess,
      2      ntarg, targ, ifpghtarg, pottarg, gradtarg, hesstarg, ier)
@@ -162,6 +162,7 @@ c      do the direct calculation
       
        
        allocate(local(nd*ntot))
+       call zinitialize(nd*ntot*2, local)
        
 c      now test source to source, charge,with potentials
        print *

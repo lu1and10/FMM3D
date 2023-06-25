@@ -779,7 +779,6 @@ C$OMP$PRIVATE(ibox,npts,istart,iend,nchild)
          enddo
 C$OMP END PARALLEL DO          
        enddo
-       if(ifprint.ge.1) print *,"nboxes:",nboxes,"leaf:",cntlist4
 
        call cpu_time(time2)
 C$     time2=omp_get_wtime()
