@@ -8,8 +8,8 @@ c
        double precision eps
        integer nmpole, mterms(nmpole), impole(nmpole)
        double precision :: cmpole(3,nmpole), rmpole(nmpole)
-       double precision :: mpole(*)
-       double precision :: local(*)
+       double complex :: mpole(*)
+       double complex :: local(*)
 
 c
 cc     tree variables
@@ -30,8 +30,8 @@ c
        integer, allocatable :: mtermssort(:), impolesort(:)
        double precision, allocatable :: cmpolesort(:,:)
        double precision, allocatable :: rmpolesort(:)
-       double precision, allocatable :: mpolesort(:)
-       double precision, allocatable :: localsort(:)
+       double complex, allocatable :: mpolesort(:)
+       double complex, allocatable :: localsort(:)
 
 c
 cc     temporary fmm arrays
@@ -72,6 +72,7 @@ c
 c
 cc     set tree flags
 c 
+       idivflag = 0
        nlmax = 51
        nlevels = 0
        nboxes = 0
@@ -254,7 +255,7 @@ c
        double precision eps
        integer nmpole, mtermssort(nmpole)
        double precision :: cmpolesort(3,nmpole), rmpolesort(nmpole)
-       double precision :: mpolesort(*),localsort(*)
+       double complex :: mpolesort(*),localsort(*)
        integer :: impolesort(nmpole)
        integer nboxes
 
@@ -633,7 +634,7 @@ C$          ithd=omp_get_thread_num()
                   gboxisort_tmp(i-istart+1,ithd) = i
                 enddo
 
-                call ireordef(1,npts,gboxisort_tmp(1,ithd),
+                call ireorderf(1,npts,gboxisort_tmp(1,ithd),
      1               gboxisort(1,ithd),gboxind(1,ithd))
 
                 do i=1,8
