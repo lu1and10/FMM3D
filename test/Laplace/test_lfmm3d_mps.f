@@ -5,6 +5,8 @@
        integer :: ipass(18),len1,ntests,isum,lused,lw,n1,nlege
        integer :: npts, ns1, ntarg, ntm, ntot
        integer, allocatable :: nterms(:), impole(:)
+       integer :: interms
+       integer, allocatable :: tmp_vec(:)
         
        double precision :: eps, err, hkrand, dnorm, done, h, pi
        double precision :: rscale, sc, shift, thresh
@@ -18,6 +20,7 @@
        double precision, allocatable :: grad(:,:,:),gradtarg(:,:,:)
        double precision, allocatable :: hess(:,:,:),hesstarg(:,:,:)
        double complex, allocatable :: mpole(:), local(:)
+       double complex, allocatable :: ilocal(:,:)
       
       
        done = 1
@@ -26,10 +29,10 @@
 c      initialize printing routine
        call prini(6,13)
       
-       nd = 3
+       nd = 1
       
       
-       n1 = 11
+       n1 = 4
        ns = n1**3
        nc = ns
       
@@ -162,7 +165,7 @@ c      do the direct calculation
       
        
        allocate(local(nd*ntot))
-       call zinitialize(nd*ntot*2, local)
+       local = 0
        
 c      now test source to source, charge,with potentials
        print *
@@ -178,6 +181,10 @@ c      now test source to source, charge,with potentials
        call lfmm3d_mps(nd, eps,
      1      nc, centers, rscales, nterms, mpole, impole, local, ier)
       
+       interms = (nterms(1)+1)*(2*nterms(1)+1)
+       allocate(ilocal(nterms(1)+1,-nterms(1):nterms(1)))
+       ilocal = 0
+       allocate(tmp_vec(interms))
        call zinitialize(nd*nc, pot2)
        npts = 1
        do i = 1,nc
@@ -185,7 +192,17 @@ c      now test source to source, charge,with potentials
      1        centers(1,i), local(impole(i)),
      2        nterms(i), source(1,i), npts, pot2(1,i),
      3        wlege, nlege)
-       end do
+         tmp_vec = (/(k, k=impole(i),impole(i)+interms-1,1)/)
+         ilocal = reshape(local(tmp_vec),(/nterms(1)+1,2*nterms(1)+1/))
+         print *, "nc:", i
+         do j=0,nterms(i)
+           print *,"iterms:",j
+           do k = -j,j
+             write (*,*) ',', ilocal(j,k)
+           enddo
+         enddo
+       enddo
+       print *, size(local)
        
        call prin2('from lfmm3d_mps, potential = *', pot2, 10)
       
