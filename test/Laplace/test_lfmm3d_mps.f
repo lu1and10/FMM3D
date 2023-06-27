@@ -5,13 +5,13 @@
        integer :: ipass(18),len1,ntests,isum,lused,lw,n1,nlege
        integer :: npts, ns1, ntarg, ntm, ntot
        integer, allocatable :: nterms(:), impole(:)
-       integer :: interms
+       integer :: interms,lca
        integer, allocatable :: tmp_vec(:)
         
        double precision :: eps, err, hkrand, dnorm, done, h, pi
        double precision :: rscale, sc, shift, thresh
        double precision, allocatable :: source(:,:), targ(:,:)
-       double precision, allocatable :: centers(:,:)
+       double precision, allocatable :: centers(:,:), dc(:,:)
        double precision, allocatable :: wlege(:), rscales(:)
         
        double precision, allocatable :: charge(:,:)
@@ -23,6 +23,9 @@
        double complex, allocatable :: ilocal(:,:)
       
       
+       allocate(dc(0:50,0:50))
+       call getsqrtbinomialcoeffs(50,dc)
+       lca = 4*50
        done = 1
        pi = 4*atan(done)
 
@@ -188,10 +191,21 @@ c      now test source to source, charge,with potentials
        call zinitialize(nd*nc, pot2)
        npts = 1
        do i = 1,nc
-         call l3dtaevalp(nd, rscales(i),
+         call l3dlocloc(nd, rscales(i),
      1        centers(1,i), local(impole(i)),
-     2        nterms(i), source(1,i), npts, pot2(1,i),
+     2        nterms(i), rscales(i), centers(1,i),
+     3        ilocal, 7,
+     4        dc,lca)
+
+c         call l3dtaevalp(nd, rscales(i),
+c     1        centers(1,i), local(impole(i)),
+c     2        nterms(i), source(1,i), npts, pot2(1,i),
+c     3        wlege, nlege)
+         call l3dtaevalp(nd, rscales(i),
+     1        centers(1,i), ilocal,
+     2        7, source(1,i), npts, pot2(1,i),
      3        wlege, nlege)
+
          tmp_vec = (/(k, k=impole(i),impole(i)+interms-1,1)/)
          ilocal = reshape(local(tmp_vec),(/nterms(1)+1,2*nterms(1)+1/))
          print *, "nc:", i
