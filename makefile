@@ -273,7 +273,8 @@ python-dist: $(STATICLIB)
 # testing routines
 #
 #
-test: $(STATICLIB) $(TOBJS) test/lfmm3d_mps
+test: $(STATICLIB) $(TOBJS) test/l3dlocloc test_hfmm3d_mps test/lfmm3d_mps test/h3dlocloc
+#test/lfmm3d_mps
 #test: $(STATICLIB) $(TOBJS) test/helmrouts test/hfmm3d test/hfmm3d_vec test/hfmm3d_scale test/laprouts test/lfmm3d test/lfmm3d_mps test/lfmm3d_vec test_hfmm3d_mps test/lfmm3d_scale test/stfmm3d test/stokkernels test/emfmm3d
 	#(cd test/Helmholtz; ./run_helmtest.sh)
 	#(cd test/Laplace; ./run_laptest.sh)
@@ -327,6 +328,12 @@ test/lfmm3d:
 
 test/lfmm3d_mps:
 	$(FC) $(FFLAGS) test/Laplace/test_lfmm3d_mps.f $(TOBJS) $(COMOBJS) $(LOBJS) -o test/Laplace/int2-test-lfmm3d-mps $(LIBS)
+
+test/l3dlocloc:
+	$(FC) $(FFLAGS) test/Laplace/test_l3dlocloc.f $(TOBJS) $(COMOBJS) $(LOBJS) -o test/Laplace/int2-test-l3dlocloc $(LIBS)
+
+test/h3dlocloc:
+	$(FC) $(FFLAGS) test/Helmholtz/test_h3dlocloc.f $(TOBJS) $(COMOBJS) $(HOBJS) -o test/Helmholtz/int2-test-h3dlocloc $(LIBS)
 
 test/lfmm3d_scale:
 	$(FC) $(FFLAGS) test/Laplace/test_lfmm3d_scale.f $(TOBJS) $(COMOBJS) $(LOBJS) -o test/Laplace/int2-test-lfmm3d-scale $(LIBS)
