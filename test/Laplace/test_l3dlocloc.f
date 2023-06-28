@@ -71,7 +71,7 @@ c
       enddo
 
       thresh = 1.0d-15
-      call l3ddirectcdh(nd,source,charge,dipvec,ns,ztrg,
+      call l3ddirectch(nd,source,charge,ns,ztrg,
      1    nt,opots,oflds,ohesss,thresh)
 
 c     local exp order for center 1
@@ -92,7 +92,7 @@ c     precompute
 c     form local exp for center 1
       allocate(locexp1(nd,0:nterms1,-nterms1:nterms1))
       call mpzero(nd,locexp1,nterms1)
-      call l3dformtacd(nd, rscale1, source, charge, dipvec,
+      call l3dformtac(nd, rscale1, source, charge,
      1     ns,c1,nterms1,locexp1,wlege,nlege)
 
       do i=1,nt
