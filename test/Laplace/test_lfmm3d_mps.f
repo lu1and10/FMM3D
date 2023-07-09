@@ -35,7 +35,7 @@ c      initialize printing routine
        nd = 1
       
       
-       n1 = 4
+       n1 = 17
        ns = n1**3
        nc = ns
       
@@ -191,28 +191,28 @@ c      now test source to source, charge,with potentials
        call zinitialize(nd*nc, pot2)
        npts = 1
        do i = 1,nc
-         call l3dlocloc(nd, rscales(i),
-     1        centers(1,i), local(impole(i)),
-     2        nterms(i), rscales(i), centers(1,i),
-     3        ilocal, 7,
-     4        dc,lca)
-
-c         call l3dtaevalp(nd, rscales(i),
+c         call l3dlocloc(nd, rscales(i),
 c     1        centers(1,i), local(impole(i)),
-c     2        nterms(i), source(1,i), npts, pot2(1,i),
-c     3        wlege, nlege)
+c     2        nterms(i), rscales(i), centers(1,i),
+c     3        ilocal, 7,
+c     4        dc,lca)
+
          call l3dtaevalp(nd, rscales(i),
-     1        centers(1,i), ilocal,
-     2        7, source(1,i), npts, pot2(1,i),
+     1        centers(1,i), local(impole(i)),
+     2        nterms(i), source(1,i), npts, pot2(1,i),
      3        wlege, nlege)
+c         call l3dtaevalp(nd, rscales(i),
+c     1        centers(1,i), ilocal,
+c     2        7, source(1,i), npts, pot2(1,i),
+c     3        wlege, nlege)
 
          tmp_vec = (/(k, k=impole(i),impole(i)+interms-1,1)/)
          ilocal = reshape(local(tmp_vec),(/nterms(1)+1,2*nterms(1)+1/))
-         print *, "nc:", i
+c         print *, "nc:", i
          do j=0,nterms(i)
-           print *,"iterms:",j
+c           print *,"iterms:",j
            do k = -j,j
-             write (*,*) ',', ilocal(j,k)
+c             write (*,*) ',', ilocal(j,k)
            enddo
          enddo
        enddo

@@ -63,7 +63,7 @@ C$     time1=omp_get_wtime()
        ifprint=1
 
        print *, 'ndiv still needs to be optimized'
-       ndiv = 1
+       ndiv = 2
 
        if(ifprint.ge.1) print *, "ndiv = ", ndiv
 c
