@@ -25,7 +25,7 @@ jobs:
 
     - name: Compile and install python bindings
       run: |
-        scl enable devtoolset-12 bash
+        scl enable gcc-toolset-12 bash
         /opt/python/cp311-cp311/bin/python -m pip install .
 
     - name: Test python bindings
