@@ -14,14 +14,14 @@ on:
 jobs:
   Linux:
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:latest
+    container: quay.io/pypa/manylinux_2_28_x86_64:latest
 
     steps:
     - uses: actions/checkout@v4
     
     - name: install gfortran
       run: |
-        yum install -y devtoolset-11-toolchain
+        yum install -y devtoolset-12-toolchain
 
     - name: Compile and install python bindings
       run: |

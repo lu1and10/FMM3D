@@ -14,23 +14,21 @@ on:
 jobs:
   Linux:
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:latest
+    container: quay.io/pypa/manylinux_2_28_x86_64:latest
 
     steps:
     - uses: actions/checkout@v4
     
-    - name: install gfortran-7
+    - name: install gfortran-12
       run: |
-        yum install -y devtoolset-7-toolchain
+        yum install -y devtoolset-12-toolchain
         echo "FFLAGS += -march=x86-64" >> make.inc
         echo "CFLAGS += -march=x86-64" >> make.inc
         echo "CXXFLAGS += -march=x86-64" >> make.inc
 
     - name: Compile python bindings
       run: |
-        scl enable devtoolset-7 bash
-        .github/workflows/python_build_posix.sh /opt/python/cp36-cp36m/bin/python
-        .github/workflows/python_build_posix.sh /opt/python/cp37-cp37m/bin/python
+        scl enable devtoolset-12 bash
         .github/workflows/python_build_posix.sh /opt/python/cp38-cp38/bin/python
         .github/workflows/python_build_posix.sh /opt/python/cp39-cp39/bin/python
         .github/workflows/python_build_posix.sh /opt/python/cp310-cp310/bin/python
@@ -39,8 +37,6 @@ jobs:
 
     - name: Test python bindings
       run: |
-        .github/workflows/python_test_posix.sh /opt/python/cp36-cp36m/bin/python
-        .github/workflows/python_test_posix.sh /opt/python/cp37-cp37m/bin/python
         .github/workflows/python_test_posix.sh /opt/python/cp38-cp38/bin/python
         .github/workflows/python_test_posix.sh /opt/python/cp39-cp39/bin/python
         .github/workflows/python_test_posix.sh /opt/python/cp310-cp310/bin/python
