@@ -21,7 +21,7 @@ jobs:
     
     - name: install gfortran
       run: |
-        yum install -y devtoolset-12-toolchain
+        yum install -y devtoolset-11-toolchain
 
     - name: Compile and install python bindings
       run: |
