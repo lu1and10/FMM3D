@@ -21,11 +21,11 @@ jobs:
     
     - name: install gfortran
       run: |
-        yum install -y devtoolset-11-toolchain
+        yum install -y gcc-toolset-12.x86_64
 
     - name: Compile and install python bindings
       run: |
-        scl enable devtoolset-11 bash
+        scl enable devtoolset-12 bash
         /opt/python/cp311-cp311/bin/python -m pip install .
 
     - name: Test python bindings
