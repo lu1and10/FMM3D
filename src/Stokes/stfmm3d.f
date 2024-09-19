@@ -468,7 +468,7 @@ c$OMP END PARALLEL DO
       end
 
 c**********************************************************************
-c      
+c
 c     We take the following conventions for the Stokes kernels.
 c
 c     1) The dynamic viscosity (mu) is assumed to be 1.
@@ -488,10 +488,10 @@ c     P_j(x,y) = r_j/r^3
 c
 c     The (Type I) stresslet, T_{ijk}, and its associated pressure
 c     tensor, PI_{jk}, we define as
-c     
+c
 c     T_{ijk}(x,y) = -3 r_i r_j r_k/ r^5
-c     PI_{jk}(x,y) = -2 delta_{jk}/r^3 + 6 r_j r_k/r^5      
-      
+c     PI_{jk}(x,y) = -2 delta_{jk}/r^3 + 6 r_j r_k/r^5
+
 
       subroutine stfmm3d_new(nd, eps, 
      $                 nsource, source,
@@ -515,7 +515,7 @@ c
 c     Stokes FMM in R^{3}: evaluate all pairwise particle
 c     interactions (ignoring self-interactions) and
 c     interactions with targs.
-c      
+c
 c     This routine computes the sum for the velocity vector,
 c
 c       u_i(x) = sum_m G_{ij}(x,y^{(m)}) sigma^{(m)}_j
@@ -527,7 +527,7 @@ c     stresslet strength, and nu^{(m)} is the stresslet orientation
 c     (note that each of these is a 3 vector per source point y^{(m)}).
 c     Repeated indices are taken as summed over 1,2,3, ie, Einstein
 c     convention. For x a source point, the self-interaction in the
-c     sum is omitted. 
+c     sum is omitted.
 c
 c     Optionally, the associated pressure p(x) and 3x3 gradient tensor
 c     grad u(x) are returned
@@ -542,21 +542,21 @@ c     Note that these two may be combined to get the stress tensor.
 c
 c-----------------------------------------------------------------------
 c     INPUT PARAMETERS:
-c     
+c
 c   nd:    in: integer
 c              number of densities
-c   
+c
 c   eps:   in: double precision
 c              requested precision
 c
-c   nsource in: integer  
+c   nsource in: integer
 c               number of sources
 c
 c   source  in: double precision (3,nsource)
 c               source(k,j) is the kth component of the jth
 c               source locations
 c
-c   ifstoklet  in: integer  
+c   ifstoklet  in: integer
 c               Stokeslet charge computation flag
 c               ifstoklet = 1   =>  include Stokeslet contribution
 c                                   otherwise do not
@@ -570,7 +570,7 @@ c               ifstrslet = 1   =>  include standard stresslet
 c                                   (type I)
 c
 c            NOT YET IMPLEMENTED
-c      
+c
 c               ifstrslet = 2   =>  include symmetric stresslet
 c                                   (type II)
 c               ifstrslet = 3   =>  include rotlet
@@ -583,21 +583,21 @@ c
 c   strsvec  in: double precision (nd,3,nsource)   
 c               stresslet orientations (nu vectors above)
 c
-c     ifppreg    in: integer      
+c     ifppreg    in: integer
 c               flag for evaluating potential, gradient, and pressure
 c               at the sources
 c               ifppreg = 1, only potential
 c               ifppreg = 2, potential and pressure
 c         GRADIENT NOT IMPLEMENTED
 c               ifppreg = 3, potential, pressure, and gradient 
-c      
-c   ntarg   in: integer  
+c
+c   ntarg   in: integer
 c              number of targs 
 c
 c   targ    in: double precision (3,ntarg)
 c             targ(k,j) is the kth component of the jth
 c             targ location
-c      
+c
 c   ifppregtarg in: integer
 c                flag for evaluating potential, gradient, and pressure
 c                at the targets
@@ -611,23 +611,23 @@ c   OUTPUT parameters:
 c
 c   pot   out: double precision(nd,3,nsource) 
 c           velocity at the source locations
-c      
+c
 c   pre   out: double precision(nd,nsource)
 c           pressure at the source locations
-c      
+c
 c         GRADIENT NOT IMPLEMENTED
 c   grad   out: double precision(nd,3,3,nsource) 
 c              gradient of velocity at the source locations
 c              grad(l,i,j,k) is the ith component of the
 c              gradient of the jth component of the velocity
 c              for the lth density at the kth source location
-c     
+c
 c   pottarg   out: double precision(nd,3,ntarg) 
 c               velocity at the targets
-c      
+c
 c   pretarg   out: double precision(nd,ntarg)
 c               pressure at the targets
-c      
+c
 c   gradtarg   out: double precision(nd,3,3,ntarg) 
 c               gradient of velocity at the targets
 c               gradtarg(l,i,j,k) is the ith component of the
@@ -651,7 +651,7 @@ c------------------------------------------------------------------
       double precision pot(nd, 3, nsource), pre(nd,nsource)
       double precision grad(nd, 3, 3, nsource)
       double precision pottarg(nd, 3, ntarg), pretarg(nd,ntarg),
-     1     gradtarg(nd, 3, 3, ntarg)      
+     1     gradtarg(nd, 3, 3, ntarg)
 
 c     local
       double precision, allocatable :: charge(:,:,:), dipvec(:,:,:,:)
@@ -663,7 +663,7 @@ c     local
       double precision :: rlet(3), rvec(3), dlet(3), dvec(3)
 
       integer ndl, ifchargel, ifdipolel, ifpghl, ifpghtargl
-      integer ndper
+      integer ndper, loffset
 
       integer i, j, ii, ifppreg1, l, npt, ier,iper
       
@@ -672,9 +672,16 @@ c     local
       
       if (ifstrslet .eq. 1 .or. ifstoklet .eq. 1) then
          ndper = 4
-      endif
-      if (ifdoublet .eq. 1) then
-         ndper = 5
+         if (ifrotlet .eq. 1 .or. ifdoublet .eq. 1) then
+            ndper = 7
+         endif
+      else
+         if (ifrotlet .eq. 1) then
+             ndper = 3
+         endif
+         if (ifdoublet .eq. 1) then
+            ndper = 7
+         endif
       endif
 
       ifdipolel = 0
@@ -682,14 +689,14 @@ c     local
 
       if (ifstoklet .eq. 1) ifchargel = 1
       if (ifstrslet .eq. 1) ifdipolel = 1
-      
+
       ndl = ndper*nd
 
       ifpghl = 3
       ifpghtargl = 3
 
 c     allocate necessary arrays
-      
+
       allocate(charge(ndper,nd,nsource),dipvec(ndper,nd,3,nsource),
      1     potl(ndper,nd,nsource),pottargl(ndper,nd,ntarg),
      2     gradl(ndper,nd,3,nsource),gradtargl(ndper,nd,3,ntarg),
@@ -700,7 +707,7 @@ c     allocate necessary arrays
          print *, "ndper =",ndper
          print *, "nd =",nd
          print *, "nsource =",nsource
-         print *, "ntarg =",ntarg        
+         print *, "ntarg =",ntarg
          stop
       endif
 
@@ -764,12 +771,20 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dmu(3)*dnu(l))/2
                endif
                if (ifrotlet .eq. 1) then
-                   dipvec(l,j,1,i) = dipvec(l,j,1,i) - rvec(l)*rlet(1)
-     1                                               + rlet(l)*rvec(1)
-                   dipvec(l,j,2,i) = dipvec(l,j,1,i) - rvec(l)*rlet(2)
-     1                                               + rlet(l)*rvec(2)
-                   dipvec(l,j,3,i) = dipvec(l,j,1,i) - rvec(l)*rlet(3)
-     1                                               + rlet(l)*rvec(3)
+                   if (ndper .eq. 7) then
+                      loffset = 4
+                   else
+                      loffset = 0
+                   endif
+                   dipvec(l+loffset,j,1,i) = dipvec(l,j,1,i) -
+     1                                       rvec(l)*rlet(1) +
+     2                                       rlet(l)*rvec(1)
+                   dipvec(l+loffset,j,2,i) = dipvec(l,j,1,i) -
+     1                                       rvec(l)*rlet(2) +
+     2                                       rlet(l)*rvec(2)
+                   dipvec(l+loffset,j,3,i) = dipvec(l,j,1,i) -
+     1                                       rvec(l)*rlet(3) +
+     2                                       rlet(l)*rvec(3)
                endif
                if (ifdoublet .eq. 1) then
                   dipvec(l,j,1,i) = dipvec(l,j,1,i) - (dlet(l)*dvec(1) +
@@ -778,12 +793,15 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dlet(2)*dvec(l))/2
                   dipvec(l,j,3,i) = dipvec(l,j,3,i) - (dlet(l)*dvec(3) +
      1                 dlet(3)*dvec(l))/2
-                   dipvec(l,j,1,i) = dipvec(l,j,1,i) - dvec(l)*dlet(1)
-     1                                               + dlet(l)*dvec(1)
-                   dipvec(l,j,2,i) = dipvec(l,j,1,i) - dvec(l)*dlet(2)
-     1                                               + dlet(l)*dvec(2)
-                   dipvec(l,j,3,i) = dipvec(l,j,1,i) - dvec(l)*dlet(3)
-     1                                               + dlet(l)*dvec(3)
+                  dipvec(l+offset,j,1,i) = dipvec(l,j,1,i) -
+     1                                     dvec(l)*dlet(1) +
+     2                                     dlet(l)*dvec(1)
+                  dipvec(l+offset,j,2,i) = dipvec(l,j,1,i) -
+     1                                     dvec(l)*dlet(2) +
+     2                                     dlet(l)*dvec(2)
+                  dipvec(l+offset,j,3,i) = dipvec(l,j,1,i) -
+     1                                     dvec(l)*dlet(3) +
+     2                                     dlet(l)*dvec(3)
                endif
             enddo
 
@@ -812,9 +830,6 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
                charge(l,j,i) = charge(l,j,i) + pl
             endif
 
-            l = 5
-            if (ifdoublet .eq. 1) then
-            endif
          enddo
 
       enddo
@@ -891,7 +906,7 @@ c$OMP$ PRIVATE(pt,pl,gl,hl,vel,velgrad,press)
                endif
 
 
-               if (l .ge. 1 .and. l .le. 3) then
+               if (l .ge. 1 .and. l .le. 3 .and. ndper .ge. 4) then
 
                   vel(l) = vel(l) + pl
                   vel(1) = vel(1) - pt(l)*gl(1)
@@ -919,6 +934,13 @@ c     confirm hessian ordering convention
                      velgrad(3,3) = velgrad(3,3) - pt(l)*hl(3)
                   endif
 
+               else if (l .ge. 1 .and. l .le. 3 .and. ndper .eq. 3) then
+                  vel(l) = vel(l) + pl
+                  if (ifppreg1 .eq. 3) then
+                     velgrad(1,l) =  velgrad(1,l) + gl(1)
+                     velgrad(2,l) =  velgrad(2,l) + gl(2)
+                     velgrad(3,l) =  velgrad(3,l) + gl(3)
+                  endif
                else if (l .eq. 4) then
 
                   vel(1) = vel(1) + gl(1)
@@ -936,7 +958,12 @@ c     confirm hessian ordering convention
                      velgrad(2,3) = velgrad(2,3) + hl(6)
                      velgrad(3,3) = velgrad(3,3) + hl(3)
                   endif
-
+               else if (l .ge. 5 .and. l .le. 7) then
+                  vel(l-4) = vel(l-4) + pl
+                  if (ifppreg1 .eq. 3) then
+                     velgrad(1,l-4) =  velgrad(1,l-4) + gl(1)
+                     velgrad(2,l-4) =  velgrad(2,l-4) + gl(2)
+                     velgrad(3,l-4) =  velgrad(3,l-4) + gl(3)
                endif
             enddo
 
