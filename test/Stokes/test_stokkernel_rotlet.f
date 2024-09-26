@@ -9,6 +9,7 @@ c
 
       real *8, allocatable :: pot(:,:), pre(:), grad(:,:,:)
       real *8, allocatable :: pot2(:,:), pre2(:), grad2(:,:,:)
+      real *8, allocatable :: pot_src(:,:)
 
       real *8, allocatable :: potl(:,:), gradl(:,:,:)
 
@@ -21,8 +22,9 @@ c
 
 
       integer ipass(5)
-      integer istress, irotlet, idoublet
-      integer i,nd,ns,nt,ntest,nd1
+      integer istoklet, istress, irotlet, idoublet
+      integer i,nd,ns,nt,ntest,nd1,ier
+      integer ifppgreg, ifppregtarg
       complex *16 eye
 c
       data eye/(0.0d0,1.0d0)/
@@ -41,7 +43,7 @@ c
       enddo
 
 
-      ns = 10
+      ns = 12
       nt = 12
 
       allocate(stoklet(3,ns),strslet(3,ns),strsvec(3,ns))
@@ -67,12 +69,12 @@ c
          rotvec(1,i) = sin(5*i*done)
          rotvec(2,i) = sin(55*i*done)
          rotvec(3,i) = sin(555*i*done)
-         doubstr(1,i) =sin(4*i*done)
-         doubstr(2,i) =sin(44*i*done)
-         doubstr(3,i) =sin(444*i*done)
-         doubvec(1,i) =sin(5*i*done)
-         doubvec(2,i) =sin(55*i*done)
-         doubvec(3,i) =sin(555*i*done)
+         doubstr(1,i) =sin(3*i*done)
+         doubstr(2,i) =sin(33*i*done)
+         doubstr(3,i) =sin(333*i*done)
+         doubvec(1,i) =sin(4*i*done)
+         doubvec(2,i) =sin(44*i*done)
+         doubvec(3,i) =sin(444*i*done)
       enddo
 
 c      call prin2('src *',source,3*ns)
@@ -97,6 +99,7 @@ c
 
       allocate(pot(3,nt),pre(nt),grad(3,3,nt))
       allocate(pot2(3,nt),pre2(nt),grad2(3,3,nt))
+      allocate(pot_src(3,ns))
 
 c     test gradient of rotlet formula
 
@@ -134,6 +137,7 @@ c     test gradient of rotlet formula
 
       errmax = 0
 
+      istoklet = 0
       istress = 0
       irotlet = 1
       idoublet = 1
@@ -178,6 +182,26 @@ c     test gradient of rotlet formula
       call prin2('err grad (just rotlet)*',errgrad,3*nt)
 
       if (errmax .lt. 1d-6) ipass(1) = 1
+
+      ifppgreg = 1
+      ifppregtarg = 3
+      pot_src = 0.0d0
+      pot2 = 0.0d0
+      pre2 = 0.0d0
+      grad2 = 0.0d0
+      call stfmm3d_new(nd1,1d-12,ns,source,istoklet,stoklet,
+     1     istress,strslet,strsvec,
+     2     irotlet,rotstr,rotvec,
+     3     idoublet,doubstr,doubvec,
+     4     ifppgreg,pot_src,pre,grad,
+     5     nt,targ,ifppregtarg,pot2,pre2,grad2,ier)
+      do i = 1,nt
+         df = pot2(1,i) - pot(1,i)
+         call prin2('pot *',pot(1,i),1)
+         call prin2('pot2 *',pot2(1,i),1)
+         call prin2('df *',df,1)
+      enddo
+
 
       stop
       end

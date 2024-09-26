@@ -663,7 +663,7 @@ c     local
       double precision :: rlet(3), rvec(3), dlet(3), dvec(3)
 
       integer ndl, ifchargel, ifdipolel, ifpghl, ifpghtargl
-      integer ndper, loffset
+      integer ndper, loffset, loffsetr
 
       integer i, j, ii, ifppreg1, l, npt, ier,iper
       
@@ -680,12 +680,13 @@ c     local
              ndper = 3
          endif
          if (ifdoublet .eq. 1) then
-            ndper = 7
+            ndper = ndper+7
          endif
       endif
 
-      if (ndper .eq. 7) then
+      if (ndper .eq. 10) then
          loffset = 4
+         loffsetr = 7
       else
          loffset = 0
       endif
@@ -695,6 +696,9 @@ c     local
 
       if (ifstoklet .eq. 1) ifchargel = 1
       if (ifstrslet .eq. 1) ifdipolel = 1
+      if (ifrotlet .eq. 1) ifdipolel = 1
+      if (ifdoublet .eq. 1) ifdipolel = 1
+      if (ifdoublet .eq. 1) ifchargel = 1
 
       ndl = ndper*nd
 
@@ -777,13 +781,13 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dmu(3)*dnu(l))/2
                endif
                if (ifrotlet .eq. 1) then
-                   dipvec(l+loffset,j,1,i) = dipvec(l,j,1,i) -
+                   dipvec(l+loffsetr,j,1,i) = dipvec(l+loffsetr,j,1,i) -
      1                                       rvec(l)*rlet(1) +
      2                                       rlet(l)*rvec(1)
-                   dipvec(l+loffset,j,2,i) = dipvec(l,j,1,i) -
+                   dipvec(l+loffsetr,j,2,i) = dipvec(l+loffsetr,j,1,i) -
      1                                       rvec(l)*rlet(2) +
      2                                       rlet(l)*rvec(2)
-                   dipvec(l+loffset,j,3,i) = dipvec(l,j,1,i) -
+                   dipvec(l+loffsetr,j,3,i) = dipvec(l+loffsetr,j,1,i) -
      1                                       rvec(l)*rlet(3) +
      2                                       rlet(l)*rvec(3)
                endif
@@ -794,13 +798,13 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dlet(2)*dvec(l))/2
                   dipvec(l,j,3,i) = dipvec(l,j,3,i) - (dlet(l)*dvec(3) +
      1                 dlet(3)*dvec(l))/2
-                  dipvec(l+loffset,j,1,i) = dipvec(l,j,1,i) -
+                  dipvec(l+loffset,j,1,i) = dipvec(l+loffset,j,1,i) -
      1                                     dvec(l)*dlet(1) +
      2                                     dlet(l)*dvec(1)
-                  dipvec(l+loffset,j,2,i) = dipvec(l,j,1,i) -
+                  dipvec(l+loffset,j,2,i) = dipvec(l+loffset,j,1,i) -
      1                                     dvec(l)*dlet(2) +
      2                                     dlet(l)*dvec(2)
-                  dipvec(l+loffset,j,3,i) = dipvec(l,j,1,i) -
+                  dipvec(l+loffset,j,3,i) = dipvec(l+loffset,j,1,i) -
      1                                     dvec(l)*dlet(3) +
      2                                     dlet(l)*dvec(3)
                endif
@@ -828,7 +832,7 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
             endif
             if (ifdoublet .eq. 1) then
                pl = dlet(1)*dvec(1) + dlet(2)*dvec(2) + dlet(3)*dvec(3)
-               charge(l,j,i) = charge(l,j,i) - pl
+               charge(l,j,i) = charge(l,j,i) + pl
 
                pl = dlet(1)*source(1,i) + dlet(2)*source(2,i) +
      1              dlet(3)*source(3,i)
@@ -977,6 +981,13 @@ c     confirm hessian ordering convention
                      velgrad(1,l-4) =  velgrad(1,l-4) + gl(1)
                      velgrad(2,l-4) =  velgrad(2,l-4) + gl(2)
                      velgrad(3,l-4) =  velgrad(3,l-4) + gl(3)
+                  endif
+               else if (l .ge. 8 .and. l .le. 10) then
+                  vel(l-7) = vel(l-7) + pl
+                  if (ifppreg1 .eq. 3) then
+                     velgrad(1,l-7) =  velgrad(1,l-7) + gl(1)
+                     velgrad(2,l-7) =  velgrad(2,l-7) + gl(2)
+                     velgrad(3,l-7) =  velgrad(3,l-7) + gl(3)
                   endif
                endif
             enddo
