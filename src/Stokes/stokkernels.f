@@ -684,19 +684,19 @@ c     rotlet and doublet
                   tempx3 = -3.0d0*zdiff(3)*dlv/r5
 
                   grad(idim,1,1,i) = grad(idim,1,1,i) - dlv*r3inv
-                  grad(idim,1,1,i) = grad(idim,1,1,i) + zdiff(1)*tempx1
-                  grad(idim,2,1,i) = grad(idim,2,1,i) + zdiff(1)*tempx2
-                  grad(idim,3,1,i) = grad(idim,3,1,i) + zdiff(1)*tempx3
+                  grad(idim,1,1,i) = grad(idim,1,1,i) - zdiff(1)*tempx1
+                  grad(idim,2,1,i) = grad(idim,2,1,i) - zdiff(1)*tempx2
+                  grad(idim,3,1,i) = grad(idim,3,1,i) - zdiff(1)*tempx3
 
                   grad(idim,2,2,i) = grad(idim,2,2,i) - dlv*r3inv
-                  grad(idim,1,2,i) = grad(idim,1,2,i) + zdiff(2)*tempx1
-                  grad(idim,2,2,i) = grad(idim,2,2,i) + zdiff(2)*tempx2
-                  grad(idim,3,2,i) = grad(idim,3,2,i) + zdiff(2)*tempx3
+                  grad(idim,1,2,i) = grad(idim,1,2,i) - zdiff(2)*tempx1
+                  grad(idim,2,2,i) = grad(idim,2,2,i) - zdiff(2)*tempx2
+                  grad(idim,3,2,i) = grad(idim,3,2,i) - zdiff(2)*tempx3
 
                   grad(idim,3,3,i) = grad(idim,3,3,i) - dlv*r3inv
-                  grad(idim,1,3,i) = grad(idim,1,3,i) + zdiff(3)*tempx1
-                  grad(idim,2,3,i) = grad(idim,2,3,i) + zdiff(3)*tempx2
-                  grad(idim,3,3,i) = grad(idim,3,3,i) + zdiff(3)*tempx3
+                  grad(idim,1,3,i) = grad(idim,1,3,i) - zdiff(3)*tempx1
+                  grad(idim,2,3,i) = grad(idim,2,3,i) - zdiff(3)*tempx2
+                  grad(idim,3,3,i) = grad(idim,3,3,i) - zdiff(3)*tempx3
 
                   pre(idim,i) = pre(idim,i) +
      1                          2.0d0*dlv/r3-6.0d0*dpl*dpv/r5
