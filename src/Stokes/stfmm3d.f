@@ -493,12 +493,12 @@ c     T_{ijk}(x,y) = -3 r_i r_j r_k/ r^5
 c     PI_{jk}(x,y) = -2 delta_{jk}/r^3 + 6 r_j r_k/r^5
 
 
-      subroutine stfmm3d_new(nd, eps, 
+      subroutine stfmm3d_new(nd, eps,
      $                 nsource, source,
      $                 ifstoklet, stoklet, ifstrslet, strslet, strsvec,
      $                 ifrotlet, rotlet, rotvec,
      $                 ifdoublet, doublet, doubvec,
-     $                 ifppreg, pot, pre, grad, ntarg, targ, 
+     $                 ifppreg, pot, pre, grad, ntarg, targ,
      $                 ifppregtarg, pottarg, pretarg, gradtarg,ier)
 cf2py  intent(in) nd,eps
 cf2py  intent(in) nsource,source
@@ -684,6 +684,12 @@ c     local
          endif
       endif
 
+      if (ndper .eq. 7) then
+         loffset = 4
+      else
+         loffset = 0
+      endif
+
       ifdipolel = 0
       ifchargel = 0
 
@@ -771,11 +777,6 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dmu(3)*dnu(l))/2
                endif
                if (ifrotlet .eq. 1) then
-                   if (ndper .eq. 7) then
-                      loffset = 4
-                   else
-                      loffset = 0
-                   endif
                    dipvec(l+loffset,j,1,i) = dipvec(l,j,1,i) -
      1                                       rvec(l)*rlet(1) +
      2                                       rlet(l)*rvec(1)
@@ -793,13 +794,13 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dlet(2)*dvec(l))/2
                   dipvec(l,j,3,i) = dipvec(l,j,3,i) - (dlet(l)*dvec(3) +
      1                 dlet(3)*dvec(l))/2
-                  dipvec(l+offset,j,1,i) = dipvec(l,j,1,i) -
+                  dipvec(l+loffset,j,1,i) = dipvec(l,j,1,i) -
      1                                     dvec(l)*dlet(1) +
      2                                     dlet(l)*dvec(1)
-                  dipvec(l+offset,j,2,i) = dipvec(l,j,1,i) -
+                  dipvec(l+loffset,j,2,i) = dipvec(l,j,1,i) -
      1                                     dvec(l)*dlet(2) +
      2                                     dlet(l)*dvec(2)
-                  dipvec(l+offset,j,3,i) = dipvec(l,j,1,i) -
+                  dipvec(l+loffset,j,3,i) = dipvec(l,j,1,i) -
      1                                     dvec(l)*dlet(3) +
      2                                     dlet(l)*dvec(3)
                endif
@@ -827,7 +828,19 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
             endif
             if (ifdoublet .eq. 1) then
                pl = dlet(1)*dvec(1) + dlet(2)*dvec(2) + dlet(3)*dvec(3)
-               charge(l,j,i) = charge(l,j,i) + pl
+               charge(l,j,i) = charge(l,j,i) - pl
+
+               pl = dlet(1)*source(1,i) + dlet(2)*source(2,i) +
+     1              dlet(3)*source(3,i)
+               pv = dvec(1)*source(1,i) + dvec(2)*source(2,i) +
+     1              dvec(3)*source(3,i)
+
+               dipvec(l,j,1,i) = dipvec(l,j,1,i) -
+     1              (dlet(1)*pv + dvec(1)*pl)/2
+               dipvec(l,j,2,i) = dipvec(l,j,2,i) -
+     1              (dlet(2)*pv + dvec(2)*pl)/2
+               dipvec(l,j,3,i) = dipvec(l,j,3,i) -
+     1              (dlet(3)*pv + dvec(3)*pl)/2
             endif
 
          enddo
@@ -964,6 +977,7 @@ c     confirm hessian ordering convention
                      velgrad(1,l-4) =  velgrad(1,l-4) + gl(1)
                      velgrad(2,l-4) =  velgrad(2,l-4) + gl(2)
                      velgrad(3,l-4) =  velgrad(3,l-4) + gl(3)
+                  endif
                endif
             enddo
 

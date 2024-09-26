@@ -514,6 +514,7 @@ c------------------------------------------------------------------
 c     local
       real *8 zdiff(3), tempx1, tempx2, tempx3
       real *8 pl, pv, dmu(3), dnu(3), temp, r, r2, r3, r5
+      real *8 r3inv
       real *8 rpl, rpv, dpl, dpv, dlv
       real *8 rlet(3),rvec(3),dlet(3),dvec(3)
       real *8 dmunu
@@ -547,7 +548,7 @@ c     rotlet and doublet
             r5 = r3*r2
             do idim = 1,nd
 
-               if (irolet .eq. 1) then
+               if (irotlet .eq. 1) then
                   rlet(1) = rotlet(idim,1,j)
                   rlet(2) = rotlet(idim,2,j)
                   rlet(3) = rotlet(idim,3,j)
@@ -613,14 +614,15 @@ c     rotlet and doublet
                   dlv = dlet(1)*dvec(1) + dlet(2)*dvec(2) +
      1                  dlet(3)*dvec(3)
                   temp = -3.0d0*dpl*dpv/r5
-                  pot(idim,1,i) = pot(idim,1,i) - zdiff(1)*dlv -
-     1                            dvec(1)*dpl + dlet(1)*dpv +
+                  r3inv = 1.0d0/r3
+                  pot(idim,1,i) = pot(idim,1,i) - zdiff(1)*dlv*r3inv -
+     1                            dvec(1)*dpl*r3inv + dlet(1)*dpv*r3inv+
      2                            zdiff(1)*temp
-                  pot(idim,2,i) = pot(idim,2,i) - zdiff(2)*dlv -
-     1                            dvec(2)*dpl + dlet(2)*dpv +
+                  pot(idim,2,i) = pot(idim,2,i) - zdiff(2)*dlv*r3inv -
+     1                            dvec(2)*dpl*r3inv + dlet(2)*dpv*r3inv+
      2                            zdiff(2)*temp
-                  pot(idim,3,i) = pot(idim,3,i) - zdiff(3)*dlv -
-     1                            dvec(3)*dpl + dlet(3)*dpv +
+                  pot(idim,3,i) = pot(idim,3,i) - zdiff(3)*dlv*r3inv -
+     1                            dvec(3)*dpl*r3inv + dlet(3)*dpv*r3inv+
      2                            zdiff(3)*temp
 
                   tempx1 = -3.0d0*(dlet(1)*dpv + dvec(1)*dpl -
