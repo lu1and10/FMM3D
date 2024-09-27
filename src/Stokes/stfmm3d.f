@@ -663,7 +663,7 @@ c     local
       double precision :: rlet(3), rvec(3), dlet(3), dvec(3)
 
       integer ndl, ifchargel, ifdipolel, ifpghl, ifpghtargl
-      integer ndper, loffset, loffsetr
+      integer ndper, loffset
 
       integer i, j, ii, ifppreg1, l, npt, ier,iper
       
@@ -677,16 +677,15 @@ c     local
          endif
       else
          if (ifrotlet .eq. 1) then
-             ndper = 3
+            ndper = 3
          endif
          if (ifdoublet .eq. 1) then
-            ndper = ndper+7
+            ndper = 7
          endif
       endif
 
-      if (ndper .eq. 10) then
+      if (ndper .eq. 7) then
          loffset = 4
-         loffsetr = 7
       else
          loffset = 0
       endif
@@ -697,8 +696,8 @@ c     local
       if (ifstoklet .eq. 1) ifchargel = 1
       if (ifstrslet .eq. 1) ifdipolel = 1
       if (ifrotlet .eq. 1) ifdipolel = 1
-      if (ifdoublet .eq. 1) ifdipolel = 1
       if (ifdoublet .eq. 1) ifchargel = 1
+      if (ifdoublet .eq. 1) ifdipolel = 1
 
       ndl = ndper*nd
 
@@ -781,13 +780,13 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
      1                 dmu(3)*dnu(l))/2
                endif
                if (ifrotlet .eq. 1) then
-                   dipvec(l+loffsetr,j,1,i) = dipvec(l+loffsetr,j,1,i) -
+                   dipvec(l+loffset,j,1,i) = dipvec(l+loffset,j,1,i) -
      1                                       rvec(l)*rlet(1) +
      2                                       rlet(l)*rvec(1)
-                   dipvec(l+loffsetr,j,2,i) = dipvec(l+loffsetr,j,1,i) -
+                   dipvec(l+loffset,j,2,i) = dipvec(l+loffset,j,2,i) -
      1                                       rvec(l)*rlet(2) +
      2                                       rlet(l)*rvec(2)
-                   dipvec(l+loffsetr,j,3,i) = dipvec(l+loffsetr,j,1,i) -
+                   dipvec(l+loffset,j,3,i) = dipvec(l+loffset,j,3,i) -
      1                                       rvec(l)*rlet(3) +
      2                                       rlet(l)*rvec(3)
                endif
@@ -801,10 +800,10 @@ c$OMP$ PRIVATE(pl,pv,rlet,rvec,dlet,dvec)
                   dipvec(l+loffset,j,1,i) = dipvec(l+loffset,j,1,i) -
      1                                     dvec(l)*dlet(1) +
      2                                     dlet(l)*dvec(1)
-                  dipvec(l+loffset,j,2,i) = dipvec(l+loffset,j,1,i) -
+                  dipvec(l+loffset,j,2,i) = dipvec(l+loffset,j,2,i) -
      1                                     dvec(l)*dlet(2) +
      2                                     dlet(l)*dvec(2)
-                  dipvec(l+loffset,j,3,i) = dipvec(l+loffset,j,1,i) -
+                  dipvec(l+loffset,j,3,i) = dipvec(l+loffset,j,3,i) -
      1                                     dvec(l)*dlet(3) +
      2                                     dlet(l)*dvec(3)
                endif
