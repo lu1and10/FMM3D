@@ -981,13 +981,6 @@ c     confirm hessian ordering convention
                      velgrad(2,l-4) =  velgrad(2,l-4) + gl(2)
                      velgrad(3,l-4) =  velgrad(3,l-4) + gl(3)
                   endif
-               else if (l .ge. 8 .and. l .le. 10) then
-                  vel(l-7) = vel(l-7) + pl
-                  if (ifppreg1 .eq. 3) then
-                     velgrad(1,l-7) =  velgrad(1,l-7) + gl(1)
-                     velgrad(2,l-7) =  velgrad(2,l-7) + gl(2)
-                     velgrad(3,l-7) =  velgrad(3,l-7) + gl(3)
-                  endif
                endif
             enddo
 
