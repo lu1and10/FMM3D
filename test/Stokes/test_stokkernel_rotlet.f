@@ -9,7 +9,10 @@ c
 
       real *8, allocatable :: pot(:,:), pre(:), grad(:,:,:)
       real *8, allocatable :: pot2(:,:), pre2(:), grad2(:,:,:)
-      real *8, allocatable :: pot_src(:,:)
+      real *8, allocatable :: pot3(:,:), pre3(:), grad3(:,:,:)
+      real *8, allocatable :: pot4(:,:), pre4(:), grad4(:,:,:)
+      real *8, allocatable :: pot_src(:,:),pre_src(:),grad_src(:,:,:)
+      real *8, allocatable :: pot_diff(:,:)
 
       real *8, allocatable :: potl(:,:), gradl(:,:,:)
 
@@ -23,7 +26,7 @@ c
 
       integer ipass(5)
       integer istoklet, istress, irotlet, idoublet
-      integer i,nd,ns,nt,ntest,nd1,ier
+      integer i,j,nd,ns,nt,ntest,nd1,ier
       integer ifppgreg, ifppregtarg
       complex *16 eye
 c
@@ -33,7 +36,7 @@ c
       pi=4.0*atan(done)
       call prini(6,13)
       write(*,*) "=========================================="
-      write(*,*) "Testing suite for stokkernels rotlet"
+      write(*,*) "Testing suite for stokkernels rotlet and doublet"
 
       open(unit=33,file='print_testres.txt',access='append')
 
@@ -99,7 +102,10 @@ c
 
       allocate(pot(3,nt),pre(nt),grad(3,3,nt))
       allocate(pot2(3,nt),pre2(nt),grad2(3,3,nt))
-      allocate(pot_src(3,ns))
+      allocate(pot3(3,nt),pre3(nt),grad3(3,3,nt))
+      allocate(pot4(3,nt),pre4(nt),grad4(3,3,nt))
+      allocate(pot_src(3,ns),pre_src(ns),grad_src(3,3,ns))
+      allocate(pot_diff(3,nt))
 
 c     test gradient of rotlet formula
 
@@ -133,6 +139,48 @@ c     test gradient of rotlet formula
          grad2(1,3,i) = 0
          grad2(2,3,i) = 0
          grad2(3,3,i) = 0
+         pre3(i) = 0
+         pot3(1,i) = 0
+         pot3(2,i) = 0
+         pot3(3,i) = 0
+         grad3(1,1,i) = 0
+         grad3(2,1,i) = 0
+         grad3(3,1,i) = 0
+         grad3(1,2,i) = 0
+         grad3(2,2,i) = 0
+         grad3(3,2,i) = 0
+         grad3(1,3,i) = 0
+         grad3(2,3,i) = 0
+         grad3(3,3,i) = 0
+         pre4(i) = 0
+         pot4(1,i) = 0
+         pot4(2,i) = 0
+         pot4(3,i) = 0
+         grad4(1,1,i) = 0
+         grad4(2,1,i) = 0
+         grad4(3,1,i) = 0
+         grad4(1,2,i) = 0
+         grad4(2,2,i) = 0
+         grad4(3,2,i) = 0
+         grad4(1,3,i) = 0
+         grad4(2,3,i) = 0
+         grad4(3,3,i) = 0
+      enddo
+
+      do i = 1,ns
+         pre_src(i) = 0
+         pot_src(1,i) = 0
+         pot_src(2,i) = 0
+         pot_src(3,i) = 0
+         grad_src(1,1,i) = 0
+         grad_src(2,1,i) = 0
+         grad_src(3,1,i) = 0
+         grad_src(1,2,i) = 0
+         grad_src(2,2,i) = 0
+         grad_src(3,2,i) = 0
+         grad_src(1,3,i) = 0
+         grad_src(2,3,i) = 0
+         grad_src(3,3,i) = 0
       enddo
 
       errmax = 0
@@ -179,29 +227,62 @@ c     test gradient of rotlet formula
          
       enddo
 
-      call prin2('err grad (just rotlet)*',errgrad,3*nt)
+      call prin2('err grad (rotlet+doublet) * direct',errgrad,3*nt)
 
       if (errmax .lt. 1d-6) ipass(1) = 1
 
+      errmax = 0
       ifppgreg = 1
       ifppregtarg = 3
-      pot_src = 0.0d0
-      pot2 = 0.0d0
-      pre2 = 0.0d0
-      grad2 = 0.0d0
       call stfmm3d_new(nd1,1d-12,ns,source,istoklet,stoklet,
      1     istress,strslet,strsvec,
      2     irotlet,rotstr,rotvec,
      3     idoublet,doubstr,doubvec,
-     4     ifppgreg,pot_src,pre,grad,
-     5     nt,targ,ifppregtarg,pot2,pre2,grad2,ier)
+     4     ifppgreg,pot_src,pre_src,grad_src,
+     5     nt,targ,ifppregtarg,pot3,pre3,grad3,ier)
+      call stfmm3d_new(nd1,1d-12,ns,source,istoklet,stoklet,
+     1     istress,strslet,strsvec,
+     2     irotlet,rotstr,rotvec,
+     3     idoublet,doubstr,doubvec,
+     4     ifppgreg,pot_src,pre_src,grad_src,
+     5     nt,targ2,ifppregtarg,pot4,pre4,grad4,ier)
+
       do i = 1,nt
-         df = pot2(1,i) - pot(1,i)
-         call prin2('pot *',pot(1,i),1)
-         call prin2('pot2 *',pot2(1,i),1)
-         call prin2('df *',df,1)
+         df = pot4(1,i) - pot3(1,i)
+         gave1 = (grad3(1,1,i) + grad4(1,1,i))/2.0d0
+         gave2 = (grad3(2,1,i) + grad4(2,1,i))/2.0d0
+         gave3 = (grad3(3,1,i) + grad4(3,1,i))/2.0d0
+         errgrad(1,i) = abs(1.0d0 - h*(gave1*pert(1) + gave2*pert(2)
+     1        + gave3*pert(3))/df)
+
+         df = pot4(2,i) - pot3(2,i)
+         gave1 = (grad3(1,2,i) + grad4(1,2,i))/2.0d0
+         gave2 = (grad3(2,2,i) + grad4(2,2,i))/2.0d0
+         gave3 = (grad3(3,2,i) + grad4(3,2,i))/2.0d0
+         errgrad(2,i) = abs(1.0d0 - h*(gave1*pert(1) + gave2*pert(2)
+     1        + gave3*pert(3))/df)
+
+         df = pot4(3,i) - pot3(3,i)
+         gave1 = (grad3(1,3,i) + grad4(1,3,i))/2.0d0
+         gave2 = (grad3(2,3,i) + grad4(2,3,i))/2.0d0
+         gave3 = (grad3(3,3,i) + grad4(3,3,i))/2.0d0
+         errgrad(3,i) = abs(1.0d0 - h*(gave1*pert(1) + gave2*pert(2)
+     1        + gave3*pert(3))/df)
+
+         errmax = max(errmax,errgrad(1,i))
+         errmax = max(errmax,errgrad(2,i))
+         errmax = max(errmax,errgrad(3,i))
       enddo
 
+      call prin2('err grad (rotlet+doublet) * fmm',errgrad,3*nt)
+
+      do i = 1,nt
+         do j = 1,3
+            pot_diff(j,i) = abs(pot3(j,i) - pot(j,i))
+         enddo
+      enddo
+
+      call prin2('pot diff',pot_diff,3*nt)
 
       stop
       end
