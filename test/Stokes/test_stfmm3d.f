@@ -14,6 +14,8 @@ c$    use omp_lib
 
       real *8, allocatable :: stoklet(:,:), strslet(:,:)
       real *8, allocatable :: strsvec(:,:)
+      real *8, allocatable :: rotstr(:,:), rotvec(:,:)
+      real *8, allocatable :: doubstr(:,:), doubvec(:,:)
       
       integer ipass(10)
       complex *16 eye
@@ -68,14 +70,17 @@ c
       eps = 1d-9
       ifstoklet = 1
       ifstrslet = 1
+      ifrotlet = 0
+      ifdoublet = 0
       ifppreg = 3
       ifppregtarg = 3
 
       call cpu_time(t1)
 c$    t1 = omp_get_wtime()      
-      call stfmm3d(nd,eps,ns,source,ifstoklet,stoklet,
-     1     ifstrslet,strslet,strsvec,ifppreg,pot,pre,grad,
-     2     nt,targ,ifppregtarg,pottarg,pretarg,gradtarg,ier)
+      call stfmm3d_new(nd,eps,ns,source,ifstoklet,stoklet,
+     1     ifstrslet,strslet,strsvec,ifrotlet,rotstr,rotvec,
+     2     ifdoublet,doubstr,doubvec,ifppreg,pot,pre,grad,
+     3     nt,targ,ifppregtarg,pottarg,pretarg,gradtarg,ier)
       call cpu_time(t2)
 c$    t2 = omp_get_wtime()      
 
