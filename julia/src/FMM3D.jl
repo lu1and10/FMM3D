@@ -1139,7 +1139,7 @@ Output:
 * ifstoklet - integer, is 1 if there are Stokeslets, 0 otherwise
 * ifstrslet - integer, is 1 if there are (type I) stresslets, 0 otherwise
 """
-function stfmm3dinputcheck(sources,stoklet,strslet,strsvec,targets,ppreg,ppregt,nd)
+function stfmm3dinputcheck(sources,stoklet,strslet,strsvec,rotstr,rotvec,doubstr,doubvec,targets,ppreg,ppregt,nd)
     anyfail = false
     
     if (size(sources,1) != 3)
@@ -1198,7 +1198,43 @@ function stfmm3dinputcheck(sources,stoklet,strslet,strsvec,targets,ppreg,ppregt,
         ifstrslet = 0
     end
 
-    if ifstoklet == 0 && ifstrslet == 0
+    if (rotstr != nothing || rotvec != nothing)
+        if (rotstr == nothing || rotvec == nothing)
+            @warn "if rotlet in calculation, need both rotstr and rotvec arrays, computing nothing"
+            anyfail = true
+        end
+        if (div(length(rotstr),nd) != n*3)
+            @warn "size of rotstr array is incompatible with sources array and nd paramter, computing nothing"
+            anyfail = true
+        end
+        if (div(length(rotvec),nd) != n*3)
+            @warn "size of rotvec array is incompatible with sources array and nd paramter, computing nothing"
+            anyfail = true
+        end
+        ifrotlet = 1
+    else
+        ifrotlet = 0
+    end
+
+    if (doubstr != nothing || doubvec != nothing)
+        if (doubstr == nothing || doubvec == nothing)
+            @warn "if doublet in calculation, need both doubstr and doubvec arrays, computing nothing"
+            anyfail = true
+        end
+        if (div(length(doubstr),nd) != n*3)
+            @warn "size of doubstr array is incompatible with sources array and nd paramter, computing nothing"
+            anyfail = true
+        end
+        if (div(length(doubvec),nd) != n*3)
+            @warn "size of doubvec array is incompatible with sources array and nd paramter, computing nothing"
+            anyfail = true
+        end
+        ifdoublet = 1
+    else
+        ifdoublet = 0
+    end
+
+    if ifstoklet == 0 && ifstrslet == 0 && ifrotlet == 0 && ifdoublet == 0
         @warn "no Stokeslets or stresslets provided, doing nothing"
         anyfail = true
     end
@@ -1216,7 +1252,7 @@ function stfmm3dinputcheck(sources,stoklet,strslet,strsvec,targets,ppreg,ppregt,
         end
     end
 
-    return anyfail, n, nt, ifstoklet, ifstrslet
+    return anyfail, n, nt, ifstoklet, ifstrslet, ifrotlet, ifdoublet
 end
 
 
@@ -1322,6 +1358,8 @@ function stfmm3d(eps::Float64,
                 sources::Array{Float64};
                  stoklet::TFN=nothing,strslet::TFN=nothing,
                  strsvec::TFN=nothing,
+                 rotstr::TFN=nothing,rotvec::TFN=nothing,
+                 doubstr::TFN=nothing,doubvec::TFN=nothing,
                  targets::TFN=nothing,ppreg::Integer=0,
                  ppregt::Integer=0,nd::Integer=1)
 
@@ -1331,6 +1369,8 @@ function stfmm3d(eps::Float64,
     
     ifstoklet = 0
     ifstrslet = 0
+    ifrotlet = 0
+    ifdoublet = 0
 
     zero = Float64(0)
     zero3 = zeros(Float64,3)
@@ -1347,7 +1387,7 @@ function stfmm3d(eps::Float64,
     # check inputs
 
     anyfail, n, nt, ifstoklet, ifstrslet = (
-        stfmm3dinputcheck(sources,stoklet,strslet,strsvec,targets,ppreg,ppregt,nd))
+        stfmm3dinputcheck(sources,stoklet,strslet,strsvec,rotstr,rotvec,doubstr,doubvec,targets,ppreg,ppregt,nd))
 
     if anyfail
         return vals
@@ -1355,6 +1395,8 @@ function stfmm3d(eps::Float64,
 
     if (ifstoklet == 0); stoklet = zero3 end
     if (ifstrslet == 0); strslet = zero3; strsvec=zero3 end
+    if (ifrotlet == 0); rotstr = zero3; rotvec=zero3 end
+    if (ifdoublet == 0); doubstr = zero3; doubvec=zero3 end
     if (nt == 0); targets = zero3 end
 
     # allocate memory for return values
@@ -1417,11 +1459,13 @@ function stfmm3d(eps::Float64,
     # $                 ifppregtarg, pottarg, pretarg, gradtarg,ier)    
 
     
-    ccall((:stfmm3d_,libfmm3d),Cvoid,(Fi,Fd,Fi,Fd,Fi,Fd,
-                                    Fi,Fd,Fd,Fi,Fd,Fd,Fd,Fi,
+    ccall((:stfmm3d_new_,libfmm3d),Cvoid,(Fi,Fd,Fi,Fd,Fi,Fd,
+                                    Fi,Fd,Fd,Fi,Fd,Fd,Fi,Fd,Fd,
+                                    Fi,Fd,Fd,Fd,Fi,
                                     Fd,Fi,Fd,Fd,Fd,Fi),
           nd,eps,n,sources,ifstoklet,stoklet,ifstrslet,
-          strslet,strsvec,ppreg,pot,pre,grad,nt,targets,ppregt,
+          strslet,strsvec,ifrotlet,rotstr,rotvec,ifdoublet,doubstr,doubvec,
+          ppreg,pot,pre,grad,nt,targets,ppregt,
           pottarg,pretarg,gradtarg,ier)
 
     # copy over error message
@@ -1532,6 +1576,8 @@ for the l-th density at the k-th target location
 function st3ddir(sources::Array{Float64},targets::Array{Float64};
                  stoklet::TFN=nothing,strslet::TFN=nothing,
                  strsvec::TFN=nothing,
+                 rotstr::TFN=nothing,rotvec::TFN=nothing,
+                 doubstr::TFN=nothing,doubvec::TFN=nothing,
                  ppregt::Integer=0,nd::Integer=1,thresh=1e-16)
 
     # default values
@@ -1554,7 +1600,7 @@ function st3ddir(sources::Array{Float64},targets::Array{Float64};
 
     ppreg=0
     anyfail, n, nt, ifstoklet, ifstrslet = (
-        stfmm3dinputcheck(sources,stoklet,strslet,strsvec,targets,ppreg,ppregt,nd))
+        stfmm3dinputcheck(sources,stoklet,strslet,strsvec,rotstr,rotvec,doubstr,doubvec,targets,ppreg,ppregt,nd))
 
     if anyfail
         return vals
@@ -1621,6 +1667,17 @@ function st3ddir(sources::Array{Float64},targets::Array{Float64};
 
 end
 
+function st3ddirectstokstrsrotdoubg!(nd,sources,stoklet,istress,
+                              strslet,strsvec,irotlet,rotstr,rotvec,idoublet,doubstr,doubvec,
+                              n,targets,nt,pottarg,pretarg,gradtarg,thresh)
+    ccall((:st3ddirectstokstrsrotdoubg_,libfmm3d),Cvoid,(Fi,Fd,Fd,Fi,Fd,Fd,
+                                                         Fi,Fd,Fd,Fi,Fd,Fd,Fi,
+                                                         Fd,Fi,Fd,Fd,Fd,Fd),
+          nd,sources,stoklet,istress,
+          strslet,strsvec,irotlet,rotstr,rotvec,idoublet,doubstr,doubvec,
+          n,targets,nt,pottarg,pretarg,gradtarg,thresh)
+    return
+end
 
 function st3ddirectstokstrsg!(nd,sources,stoklet,istress,
                               strslet,strsvec,n,targets,nt,pottarg,
