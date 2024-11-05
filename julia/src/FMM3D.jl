@@ -1120,8 +1120,9 @@ end
 
 """
 ```julia
-    anyfail, n, nt, ifstoklet, ifstrslet = (
+    anyfail, n, nt, ifstoklet, ifstrslet, ifrotlet, ifdoublet = (
         stfmm3dinputcheck(sources,stoklet,strslet,strsvec,
+                          rotstr,rotvec,doubstr,doubvec,
                                 targets,ppreg,ppregt,nd) )
 ```
 
@@ -1138,6 +1139,8 @@ Output:
 * nt - integer, number of targets
 * ifstoklet - integer, is 1 if there are Stokeslets, 0 otherwise
 * ifstrslet - integer, is 1 if there are (type I) stresslets, 0 otherwise
+* ifrotlet - integer, is 1 if there are rotlets, 0 otherwise
+* ifdoublet - integer, is 1 if there are doublets, 0 otherwise
 """
 function stfmm3dinputcheck(sources,stoklet,strslet,strsvec,rotstr,rotvec,doubstr,doubvec,targets,ppreg,ppregt,nd)
     anyfail = false
@@ -1235,7 +1238,7 @@ function stfmm3dinputcheck(sources,stoklet,strslet,strsvec,rotstr,rotvec,doubstr
     end
 
     if ifstoklet == 0 && ifstrslet == 0 && ifrotlet == 0 && ifdoublet == 0
-        @warn "no Stokeslets or stresslets provided, doing nothing"
+        @warn "no Stokeslets or stresslets or rotlet or doublet provided, doing nothing"
         anyfail = true
     end
 
@@ -1259,13 +1262,14 @@ end
 """
 ```julia
     vals = stfmm3d(eps,sources;stoklet=nothing,strslet=nothing,
-                   strsvec=nothing,targets=nothing,ppreg=0,
-                   ppregt=0,nd=1)
+                   strsvec=nothing,rotstr=nothing,rotvec=nothing,
+                   doubstr=nothing,doubvec=nothing,
+                   targets=nothing,ppreg=0,ppregt=0,nd=1)
 ```
 
 This function computes the N-body Stokes interactions
 in three dimensions where the interaction kernels are
-the Stokeslet and stresslet (see below). This is the 
+the Stokeslet and stresslet (see below). This is the
 ``O(N)`` fast multipole code which computes the interactions
 to the requested precision.
 
@@ -1274,7 +1278,7 @@ We take the following conventions for the Stokes kernels:
 For a source ``y`` and target ``x``, let ``r_i = x_i-y_i``
  and let ``r = \\sqrt{r_1^2 + r_2^2 + r_3^2}``
 
-The Stokeslet, ``G_{ij}``, and its associated pressure tensor, 
+The Stokeslet, ``G_{ij}``, and its associated pressure tensor,
 ``P_j``, (without the ``1/4\\pi`` scaling) are
 
 ```math
@@ -1282,27 +1286,44 @@ G_{ij}(x,y) = (r_i r_j)/(2r^3) + \\delta_{ij}/(2r) \\; ,
 \\quad
 P_j(x,y) = r_j/r^3
 ```
-The (Type I) stresslet, ``T_{ijk}``, and its associated 
+The (Type I) stresslet, ``T_{ijk}``, and its associated
 pressure tensor, ``\\Pi_{jk}``, (without the ``1/4\\pi``
  scaling) are
          
 ```math
- T_{ijk}(x,y) = -3 r_i r_j r_k/ r^5 \\; , \\quad
- PI_{jk} = -2 \\delta_{jk} + 6 r_j r_k/r^5   
+ T_{ijk}(x,y) = 3 r_i r_j r_k/ r^5 \\; , \\quad
+ PI_{jk} = -2 \\delta_{jk} + 6 r_j r_k/r^5
+```
+The rotlet, ``R_{ijk}``, and its associated pressure tensor,
+``Q_{jk}``, (without the ``1/4\\pi`` scaling) are
+
+```math
+ R_{ijk}(x,y) = -\\delta_{ik} r_j/r^3 + \\delta_{ij} r_k/r^3\\; , \\quad
+ Q_{jk} = 0;
+```
+The doublet, ``D_{ij}``, and its associated pressure tensor,
+``L_{jk}``, (without the ``1/4\\pi`` scaling) are
+
+```math
+ D_{ij}(x,y) = -\\delta_{jk} r_i/r^3 - \\delta_{ik} r_j/r^3 + \\delta_{ij} r_k/r^3 + 3 r_i r_j r_k/ r^5\\; , \\quad
+ L_{jk} = -2 \\delta_{jk} + 6 r_j r_k/r^5
 ```
 
 The output of this routine gives the velocity
 ```math
- u_i(x) = \\sum_{m=1}^{N} G_{ij}(x,x_m) \\sigma^{(m)}_j 
-    + T_{ijk}(x,x_m) \\mu^{(m)}_j \\nu^{(m)}_k \\, , 
+ u_i(x) = \\sum_{m=1}^{N} G_{ij}(x,x_m) \\sigma^{(m)}_j
+    + T_{ijk}(x,x_m) \\mu^{(m)}_j \\nu^{(m)}_k
+    + R_{ijk}(x,x_m) \\rstr^{(m)}_j \\rvec^{(m)}_k
+    + D_{ijk}(x,x_m) \\dstr^{(m)}_j \\dvec^{(m)}_k \\, ,
 ```
 and, optionally, the pressure
 
 ```math
- p(x) = \\sum_{m=1}^{N} P_{j}(x,x_m) \\sigma^{(m)}_j 
-    + \\Pi{jk}(x,x_m) \\mu^{(m)}_j \\nu^{(m)}_k \\, , 
+ p(x) = \\sum_{m=1}^{N} P_{j}(x,x_m) \\sigma^{(m)}_j
+    + \\PI_{jk}(x,x_m) \\mu^{(m)}_j \\nu^{(m)}_k
+    + \\L_{jk}(x,x_m) \\mu^{(m)}_j \\nu^{(m)}_k \\, ,
 ```
-where ``\\sigma^{(m)}`` is a Stokeslet density 3-vector,  
+where ``\\sigma^{(m)}`` is a Stokeslet density 3-vector,
 ``\\mu^{(m)}`` and ``\\nu^{(m)}`` are the stresslet 
 density and orientation 3-vectors, and
 ``x_{m}`` are the source locations.
@@ -1320,16 +1341,20 @@ The gradient of the velocity can also be computed by request.
 * `stoklet::Array{Float64}` size (nd,3,n) or (3,n) Stokeslet densities (``\\sigma``)
 * `strslet::Array{Float64}` size (nd,3,n) or (3,n) Stresslet densities (``\\mu'')  if either strsvec or strslet is provided, the other must be as well
 * `strsvec::Array{Float64}` size (nd,3,n) or (3,n) Stresslet orientations (``\\nu``) if either strsvec or strslet is provided, the other must be as well
+* `rotstr::Array{Float64}` size (nd,3,n) or (3,n) Stresslet densities (``\\mu'')  if either strsvec or strslet is provided, the other must be as well
+* `rotvec::Array{Float64}` size (nd,3,n) or (3,n) Stresslet orientations (``\\nu``) if either strsvec or strslet is provided, the other must be as well
+* `doubstr::Array{Float64}` size (nd,3,n) or (3,n) Stresslet densities (``\\mu'')  if either strsvec or strslet is provided, the other must be as well
+* `doubvec::Array{Float64}` size (nd,3,n) or (3,n) Stresslet orientations (``\\nu``) if either strsvec or strslet is provided, the other must be as well
 * `targets::Array{Float64}` size (3,nt) target locations (``x``)
 * `ppreg::Integer` source eval flag. 
-    + Velocity (``u``) at sources evaluated if `ppreg == 1`. 
+    + Velocity (``u``) at sources evaluated if `ppreg == 1`.
     + Velocity and pressure (``p``) at sources evaluated if `ppreg == 2`
-    + Velocity, pressure, and velocity gradient (``\\nabla u``) 
+    + Velocity, pressure, and velocity gradient (``\\nabla u``)
     at sources evaluated if `ppreg == 3`
 * `ppregt::Integer` source eval flag. 
-    + Velocity (``u``) at targets evaluated if `ppregt == 1`. 
+    + Velocity (``u``) at targets evaluated if `ppregt == 1`.
     + Velocity and pressure (``p``) at targets evaluated if `ppregt == 2`
-    + Velocity, pressure, and velocity gradient (``\\nabla u``) 
+    + Velocity, pressure, and velocity gradient (``\\nabla u``)
     at targets evaluated if `ppregt == 3`
 * `nd::Integer` number of densities of each type
 
